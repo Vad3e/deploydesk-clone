@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DeployDesk — Home</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300..600;1,300..600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:      #1aa558;
+      --green-dark: #158244;
+      --green-nav:  #1BA354;
+      --black:      #111111;
+      --text1:      #111111;
+      --text2:      #444444;
+      --text3:      #888888;
+      --bg:         #ffffff;
+      --bg2:        #f5f5f5;
+      --border:     #e2e2e2;
+      --card-bg:    #f0f0f0;
+      --radius:     14px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text1);
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    .pub-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--green-nav);
+      display: flex; align-items: center;
+      padding: 0 32px; height: 60px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.18);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px; cursor: pointer;
+      text-decoration: none;
+    }
+    .logo-icon {
+      width: 36px; height: 36px; background: rgba(255,255,255,.18);
+      border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 18px;
+    }
+    .logo-text {
+      font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 18px; color: #fff; letter-spacing: -.3px;
+    }
+    .spacer { flex: 1; }
+    .nav-links { display: flex; align-items: center; gap: 6px; }
+    .nav-link {
+      color: rgba(255,255,255,.82); font-size: 14px; font-weight: 500;
+      padding: 6px 14px; border-radius: 7px; cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+    .nav-link:hover { background: rgba(255,255,255,.12); color: #fff; }
+    .nav-link.active-route { background: rgba(255,255,255,.22); color: #fff; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      border: none; border-radius: 8px; font-family: 'DM Sans', sans-serif;
+      font-weight: 600; cursor: pointer; transition: all .18s; text-decoration: none;
+    }
+    .btn-sm { padding: 7px 16px; font-size: 13.5px; }
+    .btn-lg { padding: 14px 28px; font-size: 15px; border-radius: 10px; }
+    .btn-primary { background: var(--green); color: #fff; }
+    .btn-primary:hover { background: var(--green-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(26,165,88,.35); }
+    .btn-outline {
+      background: transparent; color: #fff;
+      border: 1.5px solid rgba(255,255,255,.55);
+    }
+    .btn-outline:hover { background: rgba(255,255,255,.1); border-color: #fff; }
+    .btn-outline-dark {
+      background: transparent; color: var(--text1);
+      border: 1.5px solid var(--border);
+    }
+    .btn-outline-dark:hover { background: var(--bg2); }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative; min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center;
+      padding: 100px 24px 80px;
+      overflow: hidden;
+    }
+    /* Subtle dot grid */
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image: radial-gradient(circle, #c8e6d4 1px, transparent 1px);
+      background-size: 36px 36px;
+      opacity: .55; z-index: 0;
+    }
+    /* Gradient glow blobs */
+    .hero::after {
+      content: '';
+      position: absolute; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 55% at 15% 80%, rgba(26,165,88,.13) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 50% at 85% 20%, rgba(26,165,88,.1) 0%, transparent 70%);
+      z-index: 0;
+    }
+    .hero > * { position: relative; z-index: 1; }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1.5px solid rgba(26,165,88,.35);
+      border-radius: 999px; padding: 6px 16px;
+      font-size: 11px; font-weight: 700; letter-spacing: .08em;
+      color: #1a7a45; text-transform: uppercase;
+      background: rgba(26,165,88,.07);
+      margin-bottom: 28px;
+    }
+    .hero-badge::before { content: '•'; color: var(--green); }
+
+    .hero-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800; line-height: 1.0;
+      font-size: clamp(50px, 9vw, 80px);
+      color: var(--black);
+      letter-spacing: -2px;
+      margin-bottom: 10px;
+    }
+    .hero-title span { color: var(--green); display: block; }
+
+    .hero-sub {
+      max-width: 520px; font-size: 16px; line-height: 1.65;
+      color: var(--text2); margin: 22px auto 36px;
+    }
+    .hero-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+    /* ── FEATURES ── */
+    .features {
+      padding: 90px 24px 100px;
+      max-width: 1100px; margin: 0 auto;
+    }
+    .section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--green);
+      margin-bottom: 10px;
+    }
+    .section-title {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: clamp(30px, 5vw, 50px); color: var(--green);
+      letter-spacing: -1px; margin-bottom: 14px; line-height: 1.1;
+    }
+    .section-sub {
+      font-size: 15.5px; color: var(--text2); max-width: 520px;
+      line-height: 1.6; margin-bottom: 56px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px; margin-top: 48px;
+    }
+    @media (max-width: 900px) { .features-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 580px) { .features-grid { grid-template-columns: 1fr; } }
+
+    .feature-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 30px 26px 28px;
+      transition: box-shadow .2s, transform .2s;
+    }
+    .feature-card:hover {
+      box-shadow: 0 6px 28px rgba(0,0,0,.09);
+      transform: translateY(-3px);
+    }
+    .feature-card:last-child {
+      background: linear-gradient(135deg, rgba(74,140,255,.06), rgba(26,165,88,.06));
+      border-color: rgba(26,165,88,.2);
+    }
+
+    .feature-icon {
+      width: 46px; height: 46px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 18px;
+    }
+    .feature-icon.blue   { background: rgba(74,140,255,.14); }
+    .feature-icon.purple { background: rgba(124,92,252,.14); }
+    .feature-icon.green  { background: rgba(26,165,88,.14); }
+    .feature-icon.orange { background: rgba(255,140,50,.14); }
+    .feature-icon.red    { background: rgba(230,60,60,.14); }
+
+    .feature-title {
+      font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 15.5px; margin-bottom: 10px; color: var(--black);
+    }
+    .feature-desc { font-size: 13.5px; line-height: 1.65; color: var(--text2); }
+
+    /* ── FOOTER ── */
+    .landing-footer {
+      background: var(--bg2); border-top: 1px solid var(--border);
+      text-align: center; padding: 40px 24px;
+    }
+    .footer-logo {
+      display: inline-flex; align-items: center; gap: 9px;
+      margin-bottom: 14px; cursor: pointer;
+    }
+    .footer-text { font-size: 13px; color: var(--text3); margin-bottom: 6px; }
+    .footer-contact { font-size: 12.5px; color: var(--text3); }
+
+    /* ── PAGE VIEWS ── */
+    .page-view { display: none; }
+    .page-view.active { display: block; }
+
+
+  </style>
+</head>
+<body>
+
+<!-- ======================================================
+     VIEW: LANDING PAGE
+====================================================== -->
+<div id="view-landing" class="page-view active">
+
+  <!-- Public Navbar -->
+  <nav class="pub-nav">
+    <div class="logo" onclick="goTo('landing')">
+      <div class="logo-icon">🚀</div>
+      <div class="logo-text">DeployDesk</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="nav-links">
+      <span class="nav-link active-route" onclick="goTo('landing')">Home</span>
+      <span class="nav-link" onclick="scrollToFeatures()">Features</span>
+      <a href="login.html" class="btn btn-outline btn-sm">Log In</a>
+      <a href="signup.html" class="btn btn-primary btn-sm">Sign Up</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    
+    <h1 class="hero-title">DeployDesk<br/><span>Event Management</span></h1>
+    <p class="hero-sub">An intelligent online event management system built for campus organizations — automate scheduling, prevent conflicts, and deploy events with confidence.</p>
+    <div class="hero-cta">
+      <a href="signup.html" class="btn btn-primary btn-lg">Get Started</a>
+      
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features-section">
+    <div style="text-align:center;">
+      <div class="section-label">What's Inside</div>
+      <h2 class="section-title">Everything your org needs</h2>
+      <p class="section-sub" style="margin:0 auto 0;">From event requests to approvals, scheduling to notifications — DeployDesk handles it all.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon blue">📋</div>
+        <div class="feature-title">Service Request Tracking</div>
+        <div class="feature-desc">Submit, track, and manage event requests with full details — venue, members, capacity, and scheduling all in one place.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon purple">⚡</div>
+        <div class="feature-title">Capacity-Constrained Allocation</div>
+        <div class="feature-desc">Our CCAA engine automatically validates every request against member workload, venue availability, and concurrent event limits.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon green">📆</div>
+        <div class="feature-title">Schedule Monitoring</div>
+        <div class="feature-desc">View weekly and monthly availability for all members. Color-coded conflict indicators keep your team on track.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon orange">📅</div>
+        <div class="feature-title">Event Calendar Tracking</div>
+        <div class="feature-desc">Monthly, weekly, and daily calendar views with drag-and-drop rescheduling for admins and clickable event details.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon red">📧</div>
+        <div class="feature-title">Email Notifications</div>
+        <div class="feature-desc">Automated email triggers for submissions, approvals, rejections, reminders, and schedule changes — keeping everyone informed.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon" style="background:rgba(74,140,255,.14);">🛡️</div>
+        <div class="feature-title">Role-Based Access Control</div>
+        <div class="feature-desc">Separate dashboards and permissions for Admins and Members. Secure JWT authentication with input validation and CSRF protection.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <div class="footer-logo" onclick="goTo('landing')">
+      <div class="logo-icon" style="width:28px;height:28px;font-size:13px;background:rgba(26,165,88,.15);border-radius:7px;display:flex;align-items:center;justify-content:center;">🚀</div>
+      <div class="logo-text" style="font-size:15px;color:var(--black);">DeployDesk</div>
+    </div>
+    <div class="footer-text">Campus Organization Service Provider</div>
+    <div class="footer-contact">📍 Cavite State University - Carmona  ✉️ events@university.edu</div>
+    <div style="font-size:11px;color:var(--text3);margin-top:16px;">© 2026 DeployDesk. All rights reserved.</div>
+  </footer>
+</div>
+
+
+<script>
+  // Updated Router to link to your physical HTML pages
+  function goTo(page) {
+    const routes = {
+      'landing': 'index.html',
+      'home': 'index.html',
+      'login': 'login.html',
+      'signup': 'signup.html',
+      'dashboard': 'dashboard.html'
+    };
+    
+    // Check if the requested page is in our routes list.
+    // If it is, redirect the browser to that physical file.
+    if (routes[page]) {
+        window.location.href = routes[page];
+    } else {
+        window.location.href = 'index.html'; // Fallback
+    }
+  }
+
+  function scrollToFeatures() {
+    const el = document.getElementById('features-section');
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  }
+</script>
+</script>
+</body>
+</html>

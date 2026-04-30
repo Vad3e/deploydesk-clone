@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DeployDesk — Requester Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300..600;1,300..600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css"> 
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green: #1BA354; --green-dark: #158244; --green-nav: #1a7a45;
+      --yellow: #ffc107;
+      --black: #111111; --text1: #111111; --text2: #555555; --text3: #888888;
+      --bg: #f4f4f4; --card-bg: #ffffff; --border: #e0e0e0; --radius: 12px;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text1); min-height: 100vh; padding-top: 80px; }
+
+    /* ── NAV ── */
+    .pub-nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: var(--green-nav); display: flex; align-items: center; padding: 0 32px; height: 60px; box-shadow: 0 2px 12px rgba(0,0,0,.18); }
+    .logo { display: flex; align-items: center; gap: 10px; cursor: pointer; text-decoration: none; }
+    .logo-icon { width: 32px; height: 32px; background: rgba(255,255,255,.18); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .logo-text { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 18px; color: #fff; }
+    .spacer { flex: 1; }
+    .nav-links { display: flex; align-items: center; gap: 6px; }
+    .nav-link { color: rgba(255,255,255,.82); font-size: 14px; font-weight: 500; padding: 6px 14px; border-radius: 7px; cursor: pointer; transition: background .15s, color .15s; border: none; background: none; font-family: 'DM Sans', sans-serif; }
+    .nav-link:hover { background: rgba(255,255,255,.12); color: #fff; }
+    .nav-link.active-tab { background: var(--green); color: #fff; font-weight: 600; }
+
+    /* ── LAYOUT & STATS ── */
+    .container { max-width: 1000px; margin: 0 auto; padding: 0 20px; }
+    .tab-content { display: none; animation: fadeIn 0.3s ease; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 24px; }
+    .stat-card { padding: 24px; border-radius: 12px; background: #fff; border: 1px solid var(--border); position: relative; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.02); }
+    .sc-blue { border-bottom: 4px solid #3498db; }
+    .sc-orange { border-bottom: 4px solid #f39c12; }
+    .sc-green { border-bottom: 4px solid #2ecc71; }
+    .stat-label { font-size: 12px; color: var(--text2); font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+    .stat-value { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; color: var(--text1); }
+    .stat-icon { position: absolute; right: 20px; top: 24px; font-size: 32px; opacity: 0.2; }
+
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 30px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+    .card-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+
+    /* ── TABLES ── */
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--text3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 14px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .hover-table tbody tr:hover { background: rgba(27,163,84,0.05); }
+    .status { padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .s-pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+    .s-approved { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .s-rejected { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+    /* ── FORMS & BUTTONS ── */
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .form-group { margin-bottom: 16px; }
+    .form-label { display: block; font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; margin-bottom: 6px; }
+    .form-input { width: 100%; min-height: 52px; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'DM Sans'; font-size: 14px; outline: none; display: flex; align-items: center; }
+    .form-input:focus { border-color: var(--green); }
+    .form-input:disabled { background: var(--bg); cursor: not-allowed; color: var(--text3); font-weight: 600; }
+    input[type="date"] { padding-right: 40px; }
+    input[type="date"]::-webkit-calendar-picker-indicator { position: absolute; right: 14px; cursor: pointer; }
+    .form-group { margin-bottom: 16px; position: relative; }
+    .time-range-input { width: 100%; min-height: 52px; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 8px; background: #fff; display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
+    .time-range-input:hover, .time-range-input:focus { border-color: var(--green); box-shadow: 0 0 0 4px rgba(27,163,84,0.08); }
+    .time-range-input span { font-size: 14px; color: var(--text2); }
+    .time-range-input .time-range-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      margin-left: 10px;
+      color: #000;
+      flex-shrink: 0;
+    }
+    .time-range-input .time-range-icon svg {
+      width: 17px;
+      height: 17px;
+      display: block;
+    }
+    .time-range-panel { position: absolute; z-index: 999; top: 100%; left: 0; right: 0; background:#fff; border:1px solid var(--border); border-radius: 14px; padding: 16px; margin-top: 8px; box-shadow: 0 16px 40px rgba(0,0,0,0.12); display:none; max-height: 340px; overflow: hidden; }
+    .time-range-panel.open { display: block; }
+    .time-range-panel-header { font-weight:700; margin-bottom:12px; color: var(--text1); }
+    .time-range-columns { display:flex; gap: 12px; }
+    .time-range-column { flex:1; }
+    .time-range-column-title { font-size:12px; font-weight:700; color: var(--text2); margin-bottom:8px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .time-range-list { max-height: 220px; overflow-y:auto; border: 1px solid var(--border); border-radius: 10px; padding: 8px; background:#fafafa; }
+    .time-option { padding: 10px 12px; border-radius: 10px; cursor:pointer; margin-bottom: 6px; font-size:14px; color: var(--text1); transition: background .2s, transform .2s; }
+    .time-option:last-child { margin-bottom: 0; }
+    .time-option:hover { background: rgba(27,163,84,0.08); }
+    .time-option.selected { background: var(--green); color: #fff; }
+    .time-option.disabled { opacity: 0.4; cursor:not-allowed; pointer-events: none; }
+    .time-range-actions { margin-top: 12px; display:flex; justify-content:flex-end; align-items: center; }
+    .time-range-panel .btn { padding: 6px 12px; font-size: 13px; }
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--green); color: #fff; border: none; border-radius: 8px; font-family: 'DM Sans'; font-weight: 600; cursor: pointer; font-size: 14px; transition: 0.2s; }
+    .btn:hover { background: var(--green-dark); }
+    
+    /* ── NOTIFICATIONS ── */
+    .notif-item { padding: 16px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; display: flex; gap: 14px; align-items: flex-start; background: #fff; }
+    .notif-item.unread { border-left: 4px solid var(--green); background: #fcfcfc; }
+    .notif-icon { font-size: 20px; }
+    .notif-text { font-size: 14px; color: var(--text1); line-height: 1.5; }
+    .notif-time { font-size: 11px; color: var(--text3); margin-top: 4px; }
+    
+    /* ── UPLOAD ZONE ── */
+    .upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 24px; text-align: center; cursor: pointer; background: #fafafa; transition: all 0.2s; }
+    .upload-zone:hover { border-color: var(--green); background: rgba(27,163,84,.03); }
+    .file-chip { display: inline-flex; align-items: center; gap: 6px; background: #eafbf1; color: var(--green-dark); padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; margin: 4px 4px 0 0; border: 1px solid #c3f1d5; }
+
+    /* ── SERVICE REQUEST TRACKING ── */
+    .service-card { background: #fff; border: 1.5px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; transition: all 0.2s; }
+    .service-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); border-color: var(--green); }
+    .service-card-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px; }
+    .service-card-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text1); margin: 0; }
+    .service-card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .service-meta-item { display: flex; flex-direction: column; }
+    .service-meta-label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .service-meta-value { font-size: 14px; color: var(--text1); font-weight: 600; }
+    .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-left: 8px; }
+
+    .toast-wrap { position: fixed; bottom: 28px; right: 28px; z-index: 999; display: flex; flex-direction: column; gap: 10px; }
+  </style>
+</head>
+<body>
+
+  <nav class="pub-nav">
+    <div class="logo" onclick="window.location.href='index.html'">
+      <div class="logo-icon">🚀</div>
+      <div class="logo-text">DeployDesk</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="nav-links">
+      <button class="nav-link active-tab" onclick="switchReqTab('ticket', this)">Submit Ticket</button>
+      <button class="nav-link" onclick="switchReqTab('service', this)">Service Request</button>
+      <button class="nav-link" onclick="switchReqTab('notif', this)">Notifications <span id="notifBadge" style="background:red;color:white;border-radius:50%;padding:2px 6px;font-size:10px;display:none;">!</span></button>
+      <button class="nav-link" onclick="switchReqTab('calendar', this)">Events Calendar</button>
+      <button class="nav-link" onclick="switchReqTab('profile', this)">My Profile</button>
+    </div>
+  </nav>
+
+  <div class="container">
+
+    <div id="tab-ticket" class="tab-content active">
+      
+      <div class="stats-row">
+        <div class="stat-card sc-blue">
+          <div class="stat-label">Total Tickets Submitted</div>
+          <div class="stat-value" id="reqStatTotal">0</div>
+          <div class="stat-icon">🎫</div>
+        </div>
+        <div class="stat-card sc-orange">
+          <div class="stat-label">Pending Admin Approval</div>
+          <div class="stat-value" id="reqStatPending">0</div>
+          <div class="stat-icon">⏳</div>
+        </div>
+        <div class="stat-card sc-green">
+          <div class="stat-label">Officially Approved</div>
+          <div class="stat-value" id="reqStatApproved">0</div>
+          <div class="stat-icon">✅</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Submit Event Request Ticket</div>
+        
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Event Title *</label><input type="text" id="rTitle" class="form-input" placeholder="e.g. Org General Assembly"></div>
+          
+          <div class="form-group">
+            <label class="form-label">Event Type *</label>
+            <select id="rType" class="form-input" onchange="toggleOtherEventType()">
+              <option value="" disabled selected>Select Event Type...</option>
+              <option value="Meetings">Meetings</option>
+              <option value="Seminars">Seminars</option>
+              <option value="Campus Programs">Campus Programs</option>
+              <option value="Other">Other: _______ (Please Specify)</option>
+            </select>
+            <input type="text" id="rTypeOther" class="form-input" placeholder="Please specify the event type..." style="display: none; margin-top: 8px;">
+          </div>
+        </div>
+
+        <div class="form-group" style="background: #fafafa; padding: 18px; border-radius: 10px; border: 1px solid var(--border);">
+          <label class="form-label" style="color:var(--green); margin-bottom: 12px; font-size:12px;">Members Required *</label>
+          <div id="dynamicRolesContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        </div>
+
+        <div class="form-group"><label class="form-label">Description / Purpose *</label><textarea id="rDesc" class="form-input" rows="3" placeholder="Briefly describe the event details and what you need the coverage team to do..."></textarea></div>
+        
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Date *</label><input type="date" id="rDate" class="form-input"></div>
+          <div class="form-group">
+            <label class="form-label">Time Range (7AM - 5PM) *</label>
+            <div id="timeRangePicker" class="time-range-input" onclick="toggleTimeRangePanel(event)" tabindex="0" role="button" aria-haspopup="true">
+              <span id="timeRangeText">--:-- --</span>
+              <span class="time-range-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
+                  <path d="M12 7V12L16 14" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </div>
+            <div id="timeRangePanel" class="time-range-panel" onclick="event.stopPropagation()">
+              <div class="time-range-panel-header">Select Start and End Time</div>
+              <div class="time-range-columns">
+                <div class="time-range-column">
+                  <div class="time-range-column-title">Start</div>
+                  <div class="time-range-list" id="startTimeList"></div>
+                </div>
+                <div class="time-range-column">
+                  <div class="time-range-column-title">End</div>
+                  <div class="time-range-list" id="endTimeList"></div>
+                </div>
+              </div>
+              <div class="time-range-actions">
+                <button type="button" class="btn" onclick="closeTimeRangePanel()">Done</button>
+              </div>
+            </div>
+            <input type="hidden" id="rTime" name="rTime">
+            <input type="hidden" id="rEndTime" name="rEndTime">
+          </div>
+        </div>
+        <div id="timeRangeDisplay" style="font-size:13px; color: var(--text3); margin-bottom:16px; min-height:20px;">&nbsp;</div>
+        <div class="form-group">
+            <label class="form-label">Venue *</label>
+            <input type="text" id="rVenue" class="form-input" placeholder="e.g. Main Auditorium">
+        </div>
+
+        <div class="form-group" style="margin-top: 20px;">
+          <label class="form-label">Supporting Documents (Optional)</label>
+          <div class="upload-zone" onclick="document.getElementById('rFiles').click()">
+            <div style="font-size: 28px; margin-bottom: 8px;">📁</div>
+            <div style="font-size: 14px; font-weight: 700; color: var(--text1);">Click to attach files</div>
+            <div style="font-size: 12px; color: var(--text3); margin-top: 4px;">Attach letters, permits, or posters (PDF, DOCX, JPG)</div>
+            <input type="file" id="rFiles" multiple style="display: none;" onchange="updateFileList(this)">
+          </div>
+          <div id="fileListDisplay" style="margin-top: 8px;"></div>
+        </div>
+
+        <button class="btn" style="width:100%; justify-content:center; padding:14px; font-size:15px; margin-top: 10px;" onclick="submitReq()">Submit Ticket for Approval</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">
+          <span>My Submitted Tickets</span>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn" style="background: rgba(27,163,84,0.1); color: var(--green); border: 1px solid var(--green); padding: 8px 14px; font-size: 12px;" onclick="filterTickets('all')">All</button>
+            <button class="btn" style="background: rgba(255,193,7,0.1); color: #856404; border: 1px solid #ffeeba; padding: 8px 14px; font-size: 12px;" onclick="filterTickets('pending')">Pending</button>
+            <button class="btn" style="background: rgba(40,167,69,0.1); color: #155724; border: 1px solid #c3e6cb; padding: 8px 14px; font-size: 12px;" onclick="filterTickets('approved')">Approved</button>
+            <button class="btn" style="background: rgba(220,53,69,0.1); color: #721c24; border: 1px solid #f5c6cb; padding: 8px 14px; font-size: 12px;" onclick="filterTickets('rejected')">Rejected</button>
+          </div>
+        </div>
+        <table class="hover-table">
+          <thead><tr><th>Event Title</th><th>Date & Time</th><th>Venue</th><th>Status</th></tr></thead>
+          <tbody id="myTicketsBody">
+            <tr><td colspan="4" style="text-align:center;">Loading tickets...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-service" class="tab-content">
+      <div class="card">
+        <div class="card-title" style="margin-bottom: 24px;">Service Request Tracking</div>
+        
+        <div id="serviceTrackingList">
+          <div style="text-align:center; padding: 40px 20px; color: var(--text3);">
+            <div style="font-size: 48px; margin-bottom: 12px;">⏳</div>
+            <div style="font-size: 14px;">Loading your service requests...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-notif" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>My Notifications</span>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn" style="background: rgba(27,163,84,0.1); color: var(--green); border: 1px solid var(--green); padding: 8px 14px; font-size: 12px;" onclick="markAllAsRead()">Mark as Read</button>
+            <button class="btn" style="background: rgba(27,163,84,0.1); color: var(--green); border: 1px solid var(--green); padding: 8px 14px; font-size: 12px;" onclick="markAllAsUnread()">Mark as Unread</button>
+          </div>
+        </div>
+        <div id="notifList">
+           <div style="text-align:center; padding: 20px; color: var(--text3);">Loading notifications...</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-calendar" class="tab-content">
+      <div class="card" style="padding: 24px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap: wrap; gap: 15px;">
+            <div>
+                <div class="card-title" style="margin-bottom:4px; padding-bottom:0; border:none;">Organization Calendar</div>
+                <div style="font-size:12px; color:var(--text3); margin-bottom: 12px;">View all officially approved upcoming events and coverage assignments.</div>
+                
+                <div style="display:flex; gap:16px; font-size:11px; font-weight:700; color:var(--text3);">
+                    <span style="display:flex; align-items:center; gap:6px;"><span style="width:10px;height:10px;background:var(--green);border-radius:2px;"></span> APPROVED EVENTS ONLY</span>
+                </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:14px; background:var(--bg2); padding:6px 12px; border-radius:8px; border:1px solid var(--border);">
+                <button class="btn btn-sm" style="background:#fff; border:1px solid var(--border); color:var(--text1);" onclick="changeCalMonth(-1)">◀</button>
+                <strong id="calendarMonthYear" style="min-width:130px; text-align:center; font-family:'Syne', sans-serif; font-size:15px; color:var(--green);">Loading...</strong>
+                <button class="btn btn-sm" style="background:#fff; border:1px solid var(--border); color:var(--text1);" onclick="changeCalMonth(1)">▶</button>
+            </div>
+        </div>
+        
+        <div style="overflow-x: auto; margin-top: 24px;">
+          <div id="calendarGrid" class="calendar-grid" style="min-width: 700px; border: none; margin-top: 0;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-profile" class="tab-content">
+      <div class="card">
+        <div class="card-title" style="justify-content: space-between;">
+          <span>My Profile Overview</span>
+          <button class="btn" onclick="window.location.href='profile.html'">Edit Full Profile</button>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Full Name</label><input type="text" id="profName" class="form-input" disabled></div>
+          <div class="form-group"><label class="form-label" style="color:var(--green);">System Role</label><input type="text" id="profRole" class="form-input" style="color:var(--green);" disabled></div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group"><label class="form-label" style="color:#007bff;">Campus/Organization Identifier</label><input type="text" id="profOrgId" class="form-input" style="color:#007bff;" disabled placeholder="e.g. Student Council President, Faculty Advisor"></div>
+          <div class="form-group"><label class="form-label">Email Address</label><input type="text" id="profEmail" class="form-input" disabled></div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Contact Number</label><input type="text" id="profContact" class="form-input" disabled></div>
+          <div class="form-group"><label class="form-label">Department/Organization</label><input type="text" id="profDept" class="form-input" disabled></div>
+        </div>
+        
+        <button class="btn" style="margin-top:10px; background:#dc3545;" onclick="doLogout()">Log Out</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script src="app.js"></script>
+  <script>
+    function switchReqTab(tabId, el) {
+      document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('active-tab'));
+      document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+      el.classList.add('active-tab');
+      document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    function toggleOtherEventType() {
+        const typeSelect = document.getElementById('rType');
+        const otherInput = document.getElementById('rTypeOther');
+        if (typeSelect.value === 'Other') {
+            otherInput.style.display = 'block';
+        } else {
+            otherInput.style.display = 'none';
+            otherInput.value = ''; 
+        }
+    }
+
+    function updateFileList(input) {
+        const display = document.getElementById('fileListDisplay');
+        display.innerHTML = '';
+        if (input.files.length > 0) {
+            Array.from(input.files).forEach(file => {
+                display.innerHTML += `<div class="file-chip">📎 ${file.name}</div>`;
+            });
+        }
+    }
+
+    function getRoleOptionsHTML() {
+        let html = '<option value="" disabled selected>Select Role...</option>';
+        if (window.groupRoles) {
+            for (const group in window.groupRoles) {
+                html += `<optgroup label="${group}">`;
+                window.groupRoles[group].forEach(role => {
+                    html += `<option value="${group} - ${role}">${role}</option>`;
+                });
+                html += `</optgroup>`;
+            }
+        }
+        return html;
+    }
+
+    function addDynamicRow() {
+        const container = document.getElementById('dynamicRolesContainer');
+        const row = document.createElement('div');
+        row.className = 'dynamic-role-row';
+        row.style.cssText = 'display: flex; gap: 10px; align-items: center; animation: fadeIn 0.2s ease;';
+        
+        row.innerHTML = `
+            <select class="form-input role-select" style="flex: 1;" onchange="checkDynamicRows()">
+                ${getRoleOptionsHTML()}
+            </select>
+            <input type="number" class="form-input count-input" style="width: 80px;" value="1" min="1" onchange="checkDynamicRows()">
+            <button type="button" class="btn" style="background:transparent; color:var(--text3); border:none; padding:8px; cursor:pointer; font-size:18px;" onclick="removeDynamicRow(this)" title="Remove Role">×</button>
+        `;
+        container.appendChild(row);
+    }
+
+    function checkDynamicRows() {
+        const container = document.getElementById('dynamicRolesContainer');
+        const rows = container.querySelectorAll('.dynamic-role-row');
+        if (rows.length === 0) return;
+
+        const lastRow = rows[rows.length - 1];
+        const lastSelect = lastRow.querySelector('.role-select').value;
+        
+        if (lastSelect !== "") {
+            addDynamicRow();
+        }
+    }
+
+    function removeDynamicRow(btn) {
+        const row = btn.closest('.dynamic-role-row');
+        const container = document.getElementById('dynamicRolesContainer');
+        
+        if (container.querySelectorAll('.dynamic-role-row').length > 1) {
+            row.remove();
+            checkDynamicRows(); 
+        } else {
+            row.querySelector('.role-select').value = "";
+            row.querySelector('.count-input').value = "1";
+        }
+    }
+
+    const timeOptions = [
+      '07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30',
+      '12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00'
+    ];
+
+    function formatTimeLabel(value) {
+      const [hour, minute] = value.split(':').map(Number);
+      const suffix = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+      return `${displayHour}:${minute.toString().padStart(2,'0')} ${suffix}`;
+    }
+
+    function addMinutes(value, minutes) {
+      const [hour, minute] = value.split(':').map(Number);
+      const totalMinutes = hour * 60 + minute + minutes;
+      const newHour = Math.floor(totalMinutes / 60);
+      const newMinute = totalMinutes % 60;
+      return `${newHour.toString().padStart(2,'0')}:${newMinute.toString().padStart(2,'0')}`;
+    }
+
+    function renderTimeLists() {
+      const startList = document.getElementById('startTimeList');
+      const endList = document.getElementById('endTimeList');
+      const startValue = document.getElementById('rTime').value;
+      const endValue = document.getElementById('rEndTime').value;
+      const minEndTime = startValue ? addMinutes(startValue, 30) : null;
+
+      startList.innerHTML = '';
+      endList.innerHTML = '';
+
+      timeOptions.forEach(time => {
+        const startOption = document.createElement('div');
+        const disabledStart = time === '17:00';
+        startOption.className = 'time-option' + (time === startValue ? ' selected' : '') + (disabledStart ? ' disabled' : '');
+        startOption.textContent = formatTimeLabel(time);
+        if (!disabledStart) {
+          startOption.onclick = () => selectStartTime(time);
+        }
+        startList.appendChild(startOption);
+
+        const endOption = document.createElement('div');
+        const disabled = !minEndTime || time < minEndTime;
+        endOption.className = 'time-option' + (time === endValue ? ' selected' : '') + (disabled ? ' disabled' : '');
+        endOption.textContent = formatTimeLabel(time);
+        if (!disabled) {
+          endOption.onclick = () => selectEndTime(time);
+        }
+        endList.appendChild(endOption);
+      });
+    }
+
+    function selectStartTime(value) {
+      const startInput = document.getElementById('rTime');
+      const endInput = document.getElementById('rEndTime');
+      startInput.value = value;
+
+      const nextEnd = addMinutes(value, 30);
+      endInput.value = (endInput.value && endInput.value > value) ? endInput.value : nextEnd;
+      renderTimeLists();
+      updateTimeRangeDisplay();
+    }
+
+    function selectEndTime(value) {
+      const endInput = document.getElementById('rEndTime');
+      endInput.value = value;
+      updateTimeRangeDisplay();
+    }
+
+    function updateTimeRangeDisplay() {
+      const start = document.getElementById('rTime').value;
+      const end = document.getElementById('rEndTime').value;
+      const display = document.getElementById('timeRangeDisplay');
+      const text = document.getElementById('timeRangeText');
+
+      if (start && end) {
+        const label = `${formatTimeLabel(start)} to ${formatTimeLabel(end)}`;
+        display.textContent = label;
+        text.textContent = label;
+      } else if (start) {
+        display.textContent = 'Select an end time.';
+        text.textContent = `${formatTimeLabel(start)} to ...`;
+      } else {
+        display.textContent = '';
+        text.textContent = '--:-- --';
+      }
+    }
+
+    function toggleTimeRangePanel(event) {
+      event.stopPropagation();
+      const picker = document.getElementById('timeRangePanel');
+      picker.classList.toggle('open');
+    }
+
+    function closeTimeRangePanel() {
+      const panel = document.getElementById('timeRangePanel');
+      if (panel) panel.classList.remove('open');
+    }
+
+    document.addEventListener('click', (event) => {
+      const picker = document.getElementById('timeRangePicker');
+      const panel = document.getElementById('timeRangePanel');
+      if (picker && panel && !picker.contains(event.target) && !panel.contains(event.target)) {
+        closeTimeRangePanel();
+      }
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+        if(document.getElementById('dynamicRolesContainer')) {
+            addDynamicRow();
+        }
+        renderTimeLists();
+        updateTimeRangeDisplay();
+    });
+
+    function markAllAsRead() {
+        document.querySelectorAll('.notif-item.unread').forEach(item => {
+            item.classList.remove('unread');
+        });
+        const badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'none';
+    }
+
+    function markAllAsUnread() {
+        document.querySelectorAll('.notif-item').forEach(item => {
+            item.classList.add('unread');
+        });
+        const badge = document.getElementById('notifBadge');
+        if (badge) badge.style.display = 'inline-block';
+    }
+
+    function filterTickets(status) {
+        const rows = document.querySelectorAll('#myTicketsBody tr');
+        rows.forEach(row => {
+            if (row.cells.length < 4) return; 
+            const statusCell = row.cells[3]; 
+            const statusText = statusCell.textContent.toLowerCase().trim();
+            if (status === 'all' || statusText.includes(status)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+  </script>
+</body>
+</html>

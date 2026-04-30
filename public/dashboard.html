@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DeployDesk — Member Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300..600;1,300..600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .notif-item { padding: 16px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; display: flex; gap: 14px; align-items: flex-start; background: #fff; }
+    .notif-item.unread { border-left: 4px solid var(--green); background: #fcfcfc; }
+    .notif-icon { font-size: 20px; }
+    .notif-text { font-size: 14px; color: var(--text1); line-height: 1.5; }
+    .notif-time { font-size: 11px; color: var(--text3); margin-top: 4px; }
+    
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 12px; border-bottom: 2px solid var(--border); color: var(--text3); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 14px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .hover-table tbody tr:hover { background: rgba(27,163,84,0.05); }
+    .status { padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .s-pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+
+    /* ⚡ NEW: Service Tracking Cards CSS */
+    .service-card { background: #fff; border: 1.5px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; transition: all 0.2s; }
+    .service-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); border-color: var(--green); }
+    .service-card-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px; }
+    .service-card-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text1); margin: 0; }
+    .service-card-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .service-meta-item { display: flex; flex-direction: column; }
+    .service-meta-label { font-size: 11px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+    .service-meta-value { font-size: 14px; color: var(--text1); font-weight: 600; }
+    .service-card-description { padding: 12px; background: #f4f4f4; border-radius: 8px; border-left: 4px solid var(--green); font-size: 13px; color: var(--text1); line-height: 1.6; margin-bottom: 16px; }
+    .status-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; margin-left: 8px; }
+    .form-input { border: 1px solid var(--border); border-radius: 8px; outline: none; transition: 0.2s; font-family: 'Arial', sans-serif; }
+    .form-input:focus { border-color: var(--green); }
+  </style>
+  <style>
+    /* Force inactive tabs to completely vanish */
+    .sub-page:not(.active) { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div class="app-shell">
+    
+    <aside class="sidebar">
+      <div class="sb-logo" onclick="goTo('landing')">
+        <div class="logo">
+          <div class="logo-icon" style="width:32px;height:32px;font-size:15px;">🚀</div>
+          <div class="logo-text" style="font-size:16px;">DeployDesk</div>
+        </div>
+      </div>
+
+      <div class="sb-user">
+        <div class="sb-av">👤</div>
+        <div class="sb-uinfo">
+          <div class="sb-uname" id="sbName">Loading...</div>
+          <div class="sb-urole">ORG MEMBER</div>
+        </div>
+      </div>
+
+      <nav class="sb-nav" style="display: flex; flex-direction: column; flex: 1;">
+  <div class="sb-sec-label">My Workspace</div>
+  <div class="sb-item active" id="snav-home" onclick="goSub('home')">
+    <span class="sb-icon">🏠</span>Dashboard
+  </div>
+  <div class="sb-item" id="snav-calendar" onclick="goSub('calendar')">
+    <span class="sb-icon">📆</span> Org Calendar
+  </div>
+  <div class="sb-item" id="snav-schedule" onclick="goSub('schedule')">
+    <span class="sb-icon">📅</span>My Schedule
+  </div>
+  
+  <div class="sb-item" id="snav-services" onclick="goSub('services')">
+    <span class="sb-icon">🛠️</span>Service Tasks
+  </div>
+
+  <div class="sb-item" id="snav-notif" onclick="goSub('notif')">
+    <span class="sb-icon">🔔</span>Notifications <span id="notifBadge" style="background:red;color:white;border-radius:50%;padding:2px 6px;font-size:10px;display:none;">!</span>
+  </div>
+  
+  <div class="sb-sec-label" id="adminNavSec" style="display:none; margin-top:20px;">Administrative Portal</div>
+  <div class="sb-item" id="snav-roster" onclick="goSub('roster')" style="display:none;">
+    <span class="sb-icon">📋</span>Roster Selection
+  </div>
+  
+  <div class="sb-sec-label" style="margin-top: 20px;">Account</div>
+  <div class="sb-item" onclick="window.location.href='profile.html'">
+    <span class="sb-icon">⚙️</span>Profile Settings
+  </div>
+
+  <div class="sb-item" onclick="doLogout()" style="margin-top: auto; margin-bottom: 20px;">
+    <span class="sb-icon">🚪</span>Log Out
+  </div>
+</nav>
+    </aside>
+
+    <div class="sb-main">
+      <header class="topbar">
+        <div>
+          <div class="tb-title" id="subPageTitle">Member Workspace</div>
+          <div class="tb-sub" id="subPageSub">Manage incoming requests and your availability</div>
+        </div>
+      </header>
+
+      <div class="sub-page active" id="sp-home" style="display: flex; flex-direction: column; height: 100%;">
+        <div class="page-body" style="display: flex; flex-direction: column; height: 100%; padding-bottom: 20px; overflow-y: auto;">
+
+          <div class="stats-row" style="margin-bottom: 24px; flex-shrink: 0;">
+            <div class="stat-card sc-blue">
+              <div class="stat-label">My Assigned Events</div>
+              <div class="stat-value" id="statMyAssigned">0</div>
+              <div class="stat-icon">✅</div>
+            </div>
+            <div class="stat-card sc-orange">
+              <div class="stat-label">Pending Matches</div>
+              <div class="stat-value" id="statMyPending">0</div>
+              <div class="stat-icon">⚡</div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap: wrap; gap: 15px; margin-bottom: 24px; flex-shrink: 0;">
+              <div style="flex: 1; min-width: 280px;">
+                  <h3 style="font-family: 'Arial', sans-serif; color: var(--green); margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                      📥 Incoming Coverage Requests
+                  </h3>
+                  <div id="ccaaTasks" style="max-height: 300px; overflow-y: auto;">
+                      <div style="background: #fff; border: 1px dashed var(--border); border-radius: 12px; padding: 30px; text-align: center; color: var(--text3);">
+                          Loading incoming requests...
+                      </div>
+                  </div>
+              </div>
+
+              <div class="card" style="flex: 1; min-width: 280px;">
+                  <div class="card-header">
+                      <div class="card-title">My Event Schedule</div>
+                      <div style="font-size:12px; color:var(--text3);">Events you have accepted or been officially assigned to cover.</div>
+                  </div>
+                  <div id="myAssignedTasks" style="padding: 0 24px 24px 24px; max-height: 300px; overflow-y: auto;">
+                      Loading your tasks...
+                  </div>
+              </div>
+          </div>
+
+          <div class="dash-three-col" style="flex: 1; min-height: 350px;">
+      
+            <div class="dash-col">
+              <div class="dash-col-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <h3>📅 Upcoming Events</h3>
+                <span class="dash-col-meta" id="evtSortLabel">ranked by proximity</span>
+              </div>
+              <div class="dash-col-controls">
+                <select id="evtSort" onchange="renderUpcomingEvents()">
+                  <option value="proximity">Sort: Proximity</option>
+                  <option value="name">Sort: Name</option>
+                  <option value="status">Sort: Status</option>
+                </select>
+                <select id="evtFilter" onchange="renderUpcomingEvents()">
+                  <option value="all">All Status</option>
+                  <option value="Approved">Approved</option>
+                  <option value="Pending">Pending</option>
+                </select>
+              </div>
+              <div class="dash-col-body" id="upcomingEventsBody">
+                </div>
+            </div>
+      
+            <div class="dash-col">
+              <div class="dash-col-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <h3>✅ Approved Requests</h3>
+                <span class="dash-col-meta" id="reqSortLabel">newest to oldest</span>
+              </div>
+              <div class="dash-col-controls">
+                <select id="reqSort" onchange="renderApprovedRequests()">
+                  <option value="newest">Sort: Newest</option>
+                  <option value="oldest">Sort: Oldest</option>
+                  <option value="name">Sort: Name</option>
+                </select>
+                <input type="text" id="reqSearch" placeholder="Search..." oninput="renderApprovedRequests()" style="flex:1; min-width:80px;" />
+              </div>
+              <div class="dash-col-body" id="approvedRequestsBody">
+                </div>
+            </div>
+      
+            <div class="dash-col">
+              <div class="dash-col-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <h3>⚡ Member Workload</h3>
+                <span class="workload-role-tag" id="memberRoleTag">Member</span>
+              </div>
+              <div class="dash-col-controls">
+                <select id="taskFilter" onchange="renderMemberWorkload()">
+                  <option value="all">All Tasks</option>
+                  <option value="due-soon">Due Soon (≤3 days)</option>
+                </select>
+                <select id="taskSort" onchange="renderMemberWorkload()">
+                  <option value="due">Sort: Due Date</option>
+                  <option value="name">Sort: Name</option>
+                </select>
+              </div>
+              <div class="dash-col-body" id="memberWorkloadBody">
+                </div>
+            </div>
+      
+          </div>
+
+        </div>
+      </div>
+      
+      <div class="sub-page" id="sp-services">
+        <div class="page-body">
+          <div class="card" style="padding: 24px;">
+            <div style="margin-bottom: 24px;">
+              <div class="card-title" style="margin-bottom: 4px; border: none; padding-bottom: 0;">Assigned Service Tasks</div>
+              <div style="font-size: 12px; color: var(--text3);">Update the live tracking status of events you are officially covering.</div>
+            </div>
+
+            <div id="memberServiceTasksList">
+              <div style="text-align:center; padding: 40px 20px; color: var(--text3);">
+                <div style="font-size: 48px; margin-bottom: 12px;">⏳</div>
+                <div style="font-size: 14px;">Loading your assigned tasks...</div>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+      
+      <div class="sub-page" id="sp-calendar">
+        <div class="page-body">
+          <div class="card" style="padding: 24px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap: wrap; gap: 15px;">
+                
+                <div>
+                    <div class="card-title" style="margin-bottom:4px; padding-bottom:0; border:none;">Organization Calendar</div>
+                    <div style="font-size:12px; color:var(--text3); margin-bottom: 12px;">View all officially approved upcoming events and coverage assignments.</div>
+                    
+                    <div style="display:flex; gap:16px; font-size:11px; font-weight:700; color:var(--text3);">
+                        <span style="display:flex; align-items:center; gap:6px;"><span style="width:10px;height:10px;background:var(--green);border-radius:2px;"></span> APPROVED EVENTS ONLY</span>
+                    </div>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:14px; background:var(--bg2); padding:6px 12px; border-radius:8px; border:1px solid var(--border);">
+                    <button class="btn btn-sm" style="background:#fff; border:1px solid var(--border); color:var(--text1); padding: 8px 16px; border-radius: 6px; cursor: pointer;" onclick="changeCalMonth(-1)">◀</button>
+                    <strong id="calendarMonthYear" style="min-width:130px; text-align:center; font-family:'Syne', sans-serif; font-size:15px; color:var(--green);">Loading...</strong>
+                    <button class="btn btn-sm" style="background:#fff; border:1px solid var(--border); color:var(--text1); padding: 8px 16px; border-radius: 6px; cursor: pointer;" onclick="changeCalMonth(1)">▶</button>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto; margin-top: 24px;">
+              <div id="calendarGrid" class="calendar-grid" style="min-width: 700px; border: none; margin-top: 0;"></div>
+            </div>
+            
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-page" id="sp-schedule">
+        <div class="page-body">
+          <div class="card">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div class="card-title">My Weekly Availability</div>
+                <div style="font-size:12px; color:var(--text3); margin-top:4px;">
+                  Click and drag to mark the times you are <strong>BUSY</strong>. The system uses this to send you incoming requests!
+                </div>
+              </div>
+              <button class="btn" style="padding: 10px 20px; background: var(--green); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;" onclick="saveMySchedule()">Save Schedule</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="isched">
+                <thead>
+                  <tr><th>Time</th><th>Monday</th><th>Tuesday</th><th>Wednesday</th><th>Thursday</th><th>Friday</th><th>Saturday</th></tr>
+                </thead>
+                <tbody id="myScheduleBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-page" id="sp-notif">
+       <div class="page-body">
+        <div class="card">
+         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <div class="card-title">My Notifications</div>
+          <button class="btn btn-outline btn-sm" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer;" onclick="markAllNotifsRead()">Mark All as Read</button>
+         </div>
+         <div id="notifList" style="padding: 0 24px 24px 24px;">
+             <div style="text-align:center; padding: 20px; color: var(--text3);">Loading notifications...</div>
+           </div>
+         </div>
+       </div>
+      </div>
+
+      <div class="sub-page" id="sp-roster">
+        <div class="page-body">
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Pending Roster Selection</div>
+              <div style="font-size:12px; color:var(--text3);">Select the best members who have accepted the tasks, and forward the final roster to the Admin.</div>
+            </div>
+            <div style="overflow-x:auto; padding: 0 24px 24px 24px;">
+              <table class="hover-table">
+                <thead>
+                  <tr>
+                      <th>Event Name</th>
+                      <th>Requester</th>
+                      <th>Date & Time</th>
+                      <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="adminRosterBody">
+                  <tr><td colspan="4" style="text-align:center; padding: 20px; color:var(--text3);">Loading roster queue...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  
+
+  <div class="toast-wrap" id="toastWrap"></div>
+  <script src="app.js"></script>
+</body>
+<script id="PATCH_SCRIPT">
+// ── Show/Hide Posting Date ──────────────────────────────────────────
+function togglePostingDate(selectElement) {
+    const container = selectElement.parentElement.querySelector('.posting-date-container');
+    if (selectElement.value === 'completed') {
+        container.style.display = 'flex';
+    } else {
+        container.style.display = 'none';
+    }
+}
+
+// ── Bar color based on days left ──────────────────────────────────────────
+function barColor(days) {
+  if (days <= 3)  return "#e74c3c";
+  if (days <= 7)  return "#e67e22";
+  if (days <= 14) return "#f1c40f";
+  return "#1ba354";
+}
+ 
+// ── Render Column 1 ───────────────────────────────────────────────────────
+function renderUpcomingEvents() {
+  const sort   = document.getElementById("evtSort")?.value   || "proximity";
+  const filter = document.getElementById("evtFilter")?.value || "all";
+  const label  = { proximity:"ranked by proximity", name:"sorted by name", status:"sorted by status" };
+  const el = document.getElementById("evtSortLabel");
+  if (el) el.textContent = label[sort];
+ 
+  let data = [...(window.UPCOMING_EVENTS || [])];
+  if (filter !== "all") data = data.filter(e => e.status === filter);
+  if (sort === "name") data.sort((a,b) => a.name.localeCompare(b.name));
+  else if (sort === "status") data.sort((a,b) => a.status.localeCompare(b.status));
+  else data.sort((a,b) => a.daysLeft - b.daysLeft);
+ 
+  const body = document.getElementById("upcomingEventsBody");
+  if (!body) return;
+  if (!data.length) { body.innerHTML = '<div style="text-align:center;color:#bbb;padding:20px;font-size:13px;">No events found.</div>'; return; }
+ 
+  body.innerHTML = data.map((e, i) => `
+    <div class="evt-item">
+      <div class="evt-rank">#${i+1}</div>
+      <div class="evt-info">
+        <div class="evt-name">${e.name}</div>
+        <div class="evt-date">${e.date} &nbsp;<span class="evt-badge ${e.status==='Approved'?'badge-approved':'badge-pending'}">${e.status}</span></div>
+        <div class="evt-bar-wrap"><div class="evt-bar" style="width:${e.barPct}%;background:${barColor(e.daysLeft)};"></div></div>
+      </div>
+      <div class="evt-days" style="color:${barColor(e.daysLeft)}">${e.daysLeft}d</div>
+    </div>
+  `).join("");
+}
+ 
+// ── Render Column 2 ───────────────────────────────────────────────────────
+function renderApprovedRequests() {
+  const sort   = document.getElementById("reqSort")?.value   || "newest";
+  const search = (document.getElementById("reqSearch")?.value || "").toLowerCase();
+  const label  = { newest:"newest to oldest", oldest:"oldest to newest", name:"sorted by name" };
+  const el = document.getElementById("reqSortLabel");
+  if (el) el.textContent = label[sort];
+ 
+  let data = [...(window.APPROVED_REQUESTS || [])];
+  if (search) data = data.filter(r => r.name.toLowerCase().includes(search));
+  if (sort === "oldest") data.sort((a,b) => a.ts - b.ts);
+  else if (sort === "name") data.sort((a,b) => a.name.localeCompare(b.name));
+  else data.sort((a,b) => b.ts - a.ts);
+ 
+  const body = document.getElementById("approvedRequestsBody");
+  if (!body) return;
+  if (!data.length) { body.innerHTML = '<div style="text-align:center;color:#bbb;padding:20px;font-size:13px;">No requests found.</div>'; return; }
+ 
+  body.innerHTML = data.map((r, i) => `
+    <div class="req-item">
+      <div class="req-num">${i+1}</div>
+      <div class="req-info">
+        <div class="req-name">${r.name}</div>
+        <div class="req-date">${r.date}</div>
+      </div>
+      <span class="evt-badge badge-approved">Approved</span>
+    </div>
+  `).join("");
+}
+ 
+// ── Render Column 3 ───────────────────────────────────────────────────────
+function renderMemberWorkload() {
+  const filterMode = document.getElementById("taskFilter")?.value || "all";
+  const sortMode   = document.getElementById("taskSort")?.value   || "due";
+  
+  const workload = window.MEMBER_WORKLOAD || { role: "MEMBER", current: 0, max: 10, tasks: [] };
+  
+  const roleTag = document.getElementById("memberRoleTag");
+  if (roleTag) roleTag.textContent = workload.role;
+ 
+  const TODAY_TS = new Date().setHours(0,0,0,0);
+  let tasks = [...workload.tasks];
+ 
+  if (filterMode === "due-soon") tasks = tasks.filter(t => t.dueTs - TODAY_TS <= (3 * 24 * 60 * 60 * 1000) && t.dueTs >= TODAY_TS);
+ 
+  if (sortMode === "name") tasks.sort((a,b) => a.name.localeCompare(b.name));
+  else tasks.sort((a,b) => a.dueTs - b.dueTs);
+  
+  const maxLimit = workload.max > 0 ? workload.max : 10;
+  const pct = Math.round((workload.current / maxLimit) * 100);
+  const isWarning = pct >= 75;
+ 
+  const body = document.getElementById("memberWorkloadBody");
+  if (!body) return;
+ 
+  body.innerHTML = `
+    <div class="workload-capacity">
+      <span>Capacity: <strong>${workload.current} / ${maxLimit} tasks</strong></span>
+      <span>${pct}%</span>
+    </div>
+    <div class="cap-bar-wrap"><div class="cap-bar" style="width:${Math.min(pct, 100)}%;"></div></div>
+    ${isWarning ? '<div class="cap-warning">⚠️ Approaching capacity. Accept requests carefully.</div>' : ""}
+    <div class="wl-section-label">Role-Based Tasks</div>
+    ${tasks.length ? tasks.map(t => `
+      <div class="task-item">
+        <div class="task-item-name">${t.name}</div>
+        <div class="task-item-meta">${t.event} &nbsp;·&nbsp; Due <span>${t.dueDate}</span></div>
+      </div>
+    `).join("") : '<div style="text-align:center;color:#bbb;padding:12px;font-size:13px;">No tasks match filter.</div>'}
+  `;
+}
+</script>
+<style id="PATCH_STYLES">
+  .sb-main {
+      overflow: hidden !important;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+  }
+  #sp-home {
+      flex: 1;
+      overflow: hidden;
+      min-height: 0;
+  }
+  #sp-home .page-body {
+      height: 100%;
+      overflow-y: auto;
+      box-sizing: border-box;
+      padding: 16px;
+  }
+  .dash-three-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      height: 100%;
+      min-height: 0;
+  }
+  .dash-col {
+      min-height: 0;
+      overflow: hidden;
+  }
+  .dash-col-body {
+      overflow-y: auto;
+      min-height: 0;
+  }
+  * { font-family: Arial, sans-serif !important; }
+ 
+  .dash-col { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; display: flex; flex-direction: column; overflow: hidden; }
+  .dash-col-header { padding: 16px 18px 12px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; }
+  .dash-col-header h3 { font-size: 15px; font-weight: 700; color: #111; margin: 0 0 2px 0; }
+  .dash-col-meta { font-size: 11px; color: #999; }
+  .dash-col-controls { display: flex; gap: 6px; padding: 8px 18px; border-bottom: 1px solid #f0f0f0; flex-shrink: 0; flex-wrap: wrap; }
+  .dash-col-controls select, .dash-col-controls input { font-size: 11px; padding: 4px 8px; border: 1px solid #ddd; border-radius: 6px; background: #fafafa; color: #333; cursor: pointer; font-family: Arial, sans-serif !important; }
+  .dash-col-controls select:focus, .dash-col-controls input:focus { outline: none; border-color: #1ba354; }
+  .dash-col-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
+  .dash-col-body::-webkit-scrollbar { width: 4px; }
+  .dash-col-body::-webkit-scrollbar-track { background: transparent; }
+  .dash-col-body::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
+ 
+  .evt-item { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f5f5f5; }
+  .evt-item:last-child { border-bottom: none; }
+  .evt-rank { font-size: 10px; font-weight: 700; color: #888; width: 22px; flex-shrink: 0; text-align: center; }
+  .evt-info { flex: 1; min-width: 0; }
+  .evt-name { font-size: 13px; font-weight: 700; color: #111; }
+  .evt-date { font-size: 11px; color: #888; margin-top: 2px; }
+  .evt-bar-wrap { margin-top: 5px; height: 4px; background: #f0f0f0; border-radius: 2px; }
+  .evt-bar { height: 4px; border-radius: 2px; transition: width 0.3s; }
+  .evt-badge { font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; }
+  .badge-approved { background: #e6f9ee; color: #1ba354; border: 1px solid #b3e8cc; }
+  .badge-pending  { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
+  .evt-days { font-size: 12px; font-weight: 700; color: #333; width: 30px; text-align: right; flex-shrink: 0; }
+ 
+  .req-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f5f5f5; }
+  .req-item:last-child { border-bottom: none; }
+  .req-num { font-size: 11px; color: #bbb; width: 18px; flex-shrink: 0; }
+  .req-info { flex: 1; }
+  .req-name { font-size: 13px; font-weight: 700; color: #111; }
+  .req-date { font-size: 11px; color: #888; margin-top: 2px; }
+ 
+  .workload-role-tag { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 99px; background: #e6f9ee; color: #1ba354; border: 1px solid #b3e8cc; text-transform: uppercase; letter-spacing: 0.05em; }
+  .workload-capacity { margin: 12px 0 8px; font-size: 12px; color: #333; display: flex; justify-content: space-between; align-items: center; }
+  .workload-capacity span:last-child { font-weight: 700; color: #e67e22; }
+  .cap-bar-wrap { height: 8px; background: #f0f0f0; border-radius: 4px; }
+  .cap-bar { height: 8px; border-radius: 4px; background: linear-gradient(90deg, #f39c12, #e67e22); transition: width 0.4s; }
+  .cap-warning { font-size: 11px; color: #856404; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 6px; padding: 7px 10px; margin-top: 8px; }
+  .wl-section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #aaa; margin: 14px 0 8px; }
+  .task-item { padding: 9px 12px; border: 1px solid #ececec; border-radius: 8px; margin-bottom: 7px; cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+  .task-item:hover { border-color: #1ba354; background: #f7fdf9; }
+  .task-item-name { font-size: 13px; font-weight: 600; color: #111; }
+  .task-item-meta { font-size: 11px; color: #888; margin-top: 2px; }
+  .task-item-meta span { color: #e67e22; font-weight: 600; }
+  /* ============================================================
+      APP SHELL
+    ============================================================ */
+    .app-shell{display:flex;min-height:100vh;width:100%;}
+    
+    /* SIDEBAR — green */
+    .sidebar{
+      width:var(--sidebar);min-height:100vh;
+      background:#438945;
+      border-right:1px solid rgba(0,0,0,0.15);
+      display:flex;flex-direction:column;
+      position:fixed;left:0;top:0;bottom:0;z-index:200;
+    }
+    .sb-logo{padding:20px 18px;border-bottom:1px solid rgba(255,255,255,0.15);cursor:pointer;display:flex;align-items:center;}
+    .sb-logo .logo{display:inline-flex;align-items:center;gap:9px;}
+    .logo-icon{width:32px;height:32px;border-radius:10px;background:#ffffff;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;color:#438945;}
+    .logo-text{font-family:var(--font-h);font-size:16px;font-weight:800;color:#ffffff;letter-spacing:-.3px;}
+    
+    .sb-user{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;gap:10px;}
+    .sb-av{width:34px;height:34px;border-radius:50%;background:#EBA63F;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--font-h);color:#fff;flex-shrink:0;overflow:hidden;cursor:pointer;}
+    .sb-av img{width:100%;height:100%;object-fit:cover;}
+    .sb-uinfo{flex:1;min-width:0;}
+    .sb-uname{font-size:13px;font-weight:500;color:#ffffff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+    .sb-urole{font-size:10px;color:rgba(255,255,255,0.65);text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
+    
+    .sb-nav{flex:1;padding:10px 0;overflow-y:auto;}
+    .sb-sec-label{font-size:9px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;padding:8px 18px 4px;font-weight:700;}
+    .sb-item{display:flex;align-items:center;gap:9px;padding:9px 18px;cursor:pointer;color:rgba(255,255,255,0.75);font-size:13px;border-left:2px solid transparent;transition:var(--ease);}
+    .sb-item:hover{color:#ffffff;background:rgba(255,255,255,0.1);}
+    .sb-item.active{color:#ffffff;background:rgba(255,255,255,0.15);border-left-color:#EBA63F;font-weight:500;}
+    .sb-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0;}
+    .sb-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:10px;min-width:16px;text-align:center;}
+    
+    .sb-main{margin-left:var(--sidebar);flex:1;display:flex;flex-direction:column;min-height:100vh;}
+    
+    /* TOPBAR — cream, NOT green */
+    .topbar{
+      background:#F7F4E9;
+      border-bottom:1px solid rgba(0,0,0,0.1);
+      padding:0 24px;height:90px;
+      display:flex;align-items:center;gap:16px;
+      position:sticky;top:0;z-index:100;
+    }
+    .tb-title{font-family:var(--font-h);font-size:17px;font-weight:700;color:var(--text);}
+    .tb-sub{font-size:11px;color:var(--text3);}
+    
+    .sub-page{display:none;flex:1;flex-direction:column;}
+    .sub-page.active{display:block;}
+    .page-body{flex:1;padding:24px;}
+</style>
+</html>

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DeployDesk — Log In</title>
+
+  <!-- Fonts: Inter (primary UI) + Roboto (fallback) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Base app styles, then auth overrides -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+  <!-- ── NAVBAR ─────────────────────────────────────────── -->
+  <nav class="pub-nav">
+    <a href="index.html" class="logo">
+      <div class="logo-icon"></div>
+      <span class="logo-text">DeployDesk</span>
+    </a>
+    <div class="spacer"></div>
+    <div class="nav-links">
+      <a href="login.html"  class="nav-link active-route">Log In</a>
+      <a href="signup.html" class="nav-link">Sign Up</a>
+    </div>
+  </nav>
+
+  <!-- ── AUTH PAGE ──────────────────────────────────────── -->
+  <div class="auth-page login-page">
+    <div class="auth-bg"></div>
+
+    <div class="auth-card">
+
+      <!-- Heading -->
+      <div class="auth-title">Welcome Back</div>
+      <div class="auth-sub">Log in to your account</div>
+
+      <!-- Top-of-form error banner (shown by app.js) -->
+      <div class="validation-banner error" id="loginErr"></div>
+
+      <!-- Email -->
+      <div class="form-group">
+        <label>Email</label>
+        <input
+          type="email"
+          id="loginEmail"
+          class="form-input"
+          placeholder="example@gmail.com"
+          autocomplete="email"
+        />
+        <span class="form-err" id="loginEmailErr"></span>
+      </div>
+
+      <!-- Password -->
+      <div class="form-group">
+        <label>Password</label>
+        <div class="password-wrapper">
+          <input
+            type="password"
+            id="loginPass"
+            class="form-input"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          />
+          <!-- Text toggle replaces the <img> approach for better accessibility -->
+          <button
+            type="button"
+            class="pass-toggle-btn"
+            onclick="togglePassword('loginPass', this)"
+            aria-label="Show password"
+          >Show</button>
+        </div>
+        <span class="form-err" id="loginPassErr"></span>
+      </div>
+
+      <!-- Forgot password -->
+      <div class="forgot-row">
+        <a href="forgot-password.html" class="link">Forgot password?</a>
+      </div>
+
+      <!-- Submit -->
+      <button
+        type="button"
+        class="btn btn-primary btn-full btn-auth"
+        onclick="doLogin()"
+      >Log In</button>
+
+      <!-- Footer -->
+      <div class="auth-footer-text">
+        Don't have an account? <a href="signup.html" class="link">Sign Up</a>
+      </div>
+
+    </div><!-- /.auth-card -->
+  </div><!-- /.auth-page -->
+
+  <!-- Toast container (used by app.js) -->
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <!-- App logic -->
+  <script src="app.js"></script>
+
+  <script>
+    /**
+     * Toggles password visibility and updates the button label.
+     * Works with both the text-button approach (above) and
+     * the legacy <img> approach if you switch back.
+     */
+    function togglePassword(inputId, trigger) {
+      const input = document.getElementById(inputId);
+      const isHidden = input.type === 'password';
+
+      input.type = isHidden ? 'text' : 'password';
+
+      // Text button variant
+      if (trigger && trigger.tagName === 'BUTTON') {
+        trigger.textContent   = isHidden ? 'Hide' : 'Show';
+        trigger.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+      }
+      // Legacy <img> variant (kept for backwards-compat)
+      if (trigger && trigger.tagName === 'IMG') {
+        trigger.src = isHidden ? 'img/show.png' : 'img/nopass.png';
+      }
+    }
+  </script>
+
+</body>
+</html>

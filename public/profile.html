@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DeployDesk — Profile</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300..600;1,300..600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:      #1BA354;
+      --green-dark: #158244;
+      --green-nav:  #1a7a45;
+      --black:      #111111;
+      --text1:      #111111;
+      --text2:      #555555;
+      --text3:      #888888;
+      --bg:         #f2f2f2;
+      --bg2:        #f8f8f8;
+      --border:     #e0e0e0;
+      --card-bg:    #ececec;
+      --white:      #ffffff;
+      --radius:     14px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text1);
+      min-height: 100vh;
+    }
+
+    /* ── NAV ── */
+    .pub-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--green-nav);
+      display: flex; align-items: center;
+      padding: 0 32px; height: 60px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.18);
+    }
+    .logo { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .logo-icon {
+      width: 36px; height: 36px; background: rgba(255,255,255,.18);
+      border-radius: 8px; display: flex; align-items: center;
+      justify-content: center; font-size: 18px;
+    }
+    .logo-text {
+      font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 18px; color: #fff; letter-spacing: -.3px;
+    }
+    .spacer { flex: 1; }
+    .nav-links { display: flex; align-items: center; gap: 6px; }
+    .nav-link {
+      color: rgba(255,255,255,.85); font-size: 14px; font-weight: 500;
+      padding: 6px 14px; border-radius: 7px; cursor: pointer;
+      transition: background .15s, color .15s;
+      border: none; background: none; font-family: 'DM Sans', sans-serif;
+    }
+    .nav-link:hover { background: rgba(255,255,255,.12); color: #fff; }
+    .nav-link.active-nav {
+      background: var(--green); color: #fff;
+      border-radius: 8px; padding: 7px 18px; font-weight: 600;
+    }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 7px; padding: 10px 20px; border-radius: 8px; font-size: 13px;
+      font-weight: 500; border: none; transition: all .2s cubic-bezier(.4,0,.2,1);
+      cursor: pointer; white-space: nowrap; font-family: 'DM Sans', sans-serif;
+    }
+    .btn-primary { background: var(--green); color: #fff; }
+    .btn-primary:hover { background: var(--green-dark); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(27,163,84,.3); }
+    .btn-outline {
+      background: var(--white); color: var(--text1);
+      border: 1px solid var(--border);
+    }
+    .btn-outline:hover { border-color: #aaa; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
+
+    /* ── PAGE WRAP ── */
+    .profile-wrap {
+      max-width: 860px; margin: 0 auto;
+      padding: 80px 20px 60px;
+    }
+
+    /* ── PROFILE HEADER CARD ── */
+    .profile-header {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      display: flex; align-items: center; gap: 24px;
+      position: relative; margin-bottom: 24px;
+    }
+    .avatar {
+      width: 84px; height: 84px; border-radius: 50%;
+      background: var(--green);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: 26px; color: #fff; flex-shrink: 0; position: relative;
+    }
+    .avatar-badge {
+      position: absolute; bottom: 4px; right: 4px;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--green); border: 2px solid var(--card-bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+    }
+    .profile-info { flex: 1; }
+    .profile-name {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: 26px; color: var(--black); margin-bottom: 6px;
+    }
+    .role-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: rgba(27,163,84,.1); border: 1px solid rgba(27,163,84,.25);
+      border-radius: 999px; padding: 4px 12px;
+      font-size: 12px; font-weight: 600; color: var(--green);
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+    .profile-meta { font-size: 13.5px; color: var(--text2); margin-top: 4px; }
+    .profile-meta span { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+    .back-btn { position: absolute; top: 22px; right: 28px; }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex; gap: 0; border-bottom: 2px solid var(--border);
+      margin-bottom: 20px; overflow-x: auto;
+    }
+    .tab {
+      padding: 11px 20px; font-size: 13.5px; font-weight: 500;
+      color: var(--text2); cursor: pointer; border: none; background: none;
+      font-family: 'DM Sans', sans-serif; white-space: nowrap;
+      border-bottom: 2px solid transparent; margin-bottom: -2px;
+      transition: color .15s, border-color .15s;
+    }
+    .tab:hover { color: var(--text1); }
+    .tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 600; }
+
+    /* ── TAB PANELS ── */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── CONTENT CARD ── */
+    .content-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+    }
+    .card-title {
+      font-family: 'Syne', sans-serif; font-weight: 700;
+      font-size: 16px; color: var(--black); margin-bottom: 18px;
+      padding-bottom: 14px; border-bottom: 1px solid var(--border);
+    }
+
+    /* ── INFO TABLE ── */
+    .info-table { width: 100%; border-collapse: collapse; }
+    .info-table tr { border-bottom: 1px solid var(--border); }
+    .info-table tr:last-child { border-bottom: none; }
+    .info-table td {
+      padding: 14px 6px; vertical-align: middle; font-size: 13.5px;
+    }
+    .info-table td:first-child { width: 44px; text-align: center; font-size: 18px; }
+    .info-table td:nth-child(2) {
+      font-size: 10.5px; font-weight: 700; letter-spacing: .09em;
+      text-transform: uppercase; color: var(--text3); width: 140px;
+    }
+    .info-table td:last-child { color: var(--text1); }
+    .status-active { color: var(--green); font-weight: 600; }
+
+    /* ── WORKLOAD ── */
+    .workload-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+    .workload-emoji { font-size: 36px; }
+    .workload-pct {
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: 28px; color: var(--green);
+    }
+    .workload-label { font-size: 13px; color: var(--text2); margin-left: 6px; }
+    .workload-role { font-size: 12px; color: var(--text3); margin-top: 2px; }
+    .progress-bar {
+      height: 8px; background: var(--border); border-radius: 99px;
+      margin: 10px 0 20px; overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%; background: var(--green); border-radius: 99px;
+      transition: width .4s ease;
+    }
+    .workload-stats { display: flex; gap: 40px; margin-bottom: 18px; }
+    .stat-val { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 26px; color: var(--black); }
+    .stat-lbl { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--text3); margin-top: 2px; }
+    .workload-meta { font-size: 13px; color: var(--text2); line-height: 1.9; }
+
+    /* ── FORM ── */
+    .form-group { margin-bottom: 18px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    @media (max-width: 540px) { .form-row { grid-template-columns: 1fr; } }
+    .form-label {
+      display: block; font-size: 10.5px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase;
+      color: var(--text2); margin-bottom: 7px;
+    }
+    .form-input {
+      width: 100%; padding: 11px 14px;
+      background: var(--white); border: 1.5px solid var(--border);
+      border-radius: 9px; font-size: 14px; font-family: 'DM Sans', sans-serif;
+      color: var(--text1); outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .form-input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(27,163,84,.1); }
+    .form-input:disabled { background: var(--bg); color: var(--text3); cursor: not-allowed; }
+
+    /* ── PROFILE PICTURE ── */
+    .pic-current { display: flex; flex-direction: column; align-items: center; margin-bottom: 20px; gap: 8px; }
+    .pic-avatar {
+      width: 90px; height: 90px; border-radius: 50%;
+      background: var(--green); display: flex; align-items: center;
+      justify-content: center; font-family: 'Syne', sans-serif;
+      font-weight: 800; font-size: 28px; color: #fff;
+    }
+    .pic-caption { font-size: 12.5px; color: var(--text3); }
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 12px;
+      padding: 36px 20px; text-align: center; cursor: pointer;
+      transition: border-color .15s, background .15s; margin-bottom: 18px;
+    }
+    .upload-zone:hover { border-color: var(--green); background: rgba(27,163,84,.03); }
+
+    /* ── TOAST ── */
+    .toast-wrap {
+      position: fixed; bottom: 28px; right: 28px; z-index: 999;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .toast {
+      background: #222; color: #fff; padding: 12px 18px;
+      border-radius: 10px; font-size: 13px; box-shadow: 0 4px 20px rgba(0,0,0,.2);
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="pub-nav">
+    <div class="logo" id="navLogoBtn" style="cursor:pointer;">
+      <div class="logo-icon">🚀</div>
+      <div class="logo-text">DeployDesk</div>
+    </div>
+    <div class="spacer"></div>
+    <div class="nav-links">
+      <button class="nav-link active-nav">Profile</button>
+      <button class="nav-link" onclick="doLogout()">Log Out</button>
+    </div>
+  </nav>
+
+  <div class="profile-wrap">
+
+    <div class="profile-header">
+      <div class="avatar">
+        <span id="hdrAvatarText">--</span>
+        <img id="hdrAvatarImg" src="" style="width:100%; height:100%; object-fit:cover; border-radius:50%; display:none;">
+        <div class="avatar-badge">✔</div>
+      </div>
+      <div class="profile-info">
+        <div class="profile-name" id="hdrName">Loading...</div>
+        <div class="role-badge" id="hdrRole">👤 Loading</div>
+        <div class="profile-meta">
+          <span id="hdrEmail">📧 Loading...</span>
+          <span id="hdrContact">📞 Loading...</span>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm back-btn" id="backBtn">← Back to Dashboard</button>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('info', this)">Profile Info</button>
+      <button class="tab" onclick="switchTab('workload', this)">My Workload</button>
+      <button class="tab" onclick="switchTab('edit', this)">Edit Profile</button>
+      <button class="tab" onclick="switchTab('password', this)">Change Password</button>
+      <button class="tab" onclick="switchTab('picture', this)">Profile Picture</button>
+    </div>
+
+    <div class="tab-panel active" id="panel-info">
+      <div class="content-card">
+        <div class="card-title">Account Information</div>
+        <table class="info-table">
+          <tr><td>👤</td><td>Full Name</td><td id="infoName">...</td></tr>
+          <tr><td>📧</td><td>Campus Email</td><td id="infoEmail">...</td></tr>
+          <tr><td>📞</td><td>Contact</td><td id="infoContact">...</td></tr>
+          <tr><td>🛡️</td><td>Role</td><td id="infoRole">...</td></tr>
+          <tr><td>✅</td><td>Status</td><td class="status-active">Active</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-workload">
+      <div class="content-card">
+        <div class="card-title">My Workload Overview</div>
+        <div class="workload-header">
+          <div class="workload-emoji">🙂</div>
+          <div>
+            <div><span class="workload-pct">0%</span><span class="workload-label">Low</span></div>
+            <div class="workload-role" id="workloadRole">System User</div>
+          </div>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:0%"></div></div>
+        <div class="workload-stats">
+          <div><div class="stat-val">0</div><div class="stat-lbl">Active Events</div></div>
+          <div><div class="stat-val">0</div><div class="stat-lbl">Upcoming</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-edit">
+      <div class="content-card">
+        <div class="card-title">Edit Profile Information</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Full Name</label>
+            <input class="form-input" id="profEditName" type="text" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contact Number</label>
+            <input class="form-input" id="profEditContact" type="tel" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Campus Email (Non-Editable)</label>
+          <input class="form-input" id="profEditEmail" type="email" disabled/>
+        </div>
+
+        <div id="profEditPositionWrapper" style="display: none; background: #fafafa; padding: 18px; border-radius: 10px; border: 1px dashed var(--border); margin-bottom: 20px;">
+            <label class="form-label" style="color:var(--green);">My Coverage Role (CCAA Algorithm)</label>
+            <div style="font-size: 12px; color: var(--text3); margin-bottom: 12px;">This is the role the system uses to assign you event coverage tasks.</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+              <select id="profEditGroup" class="form-input" onchange="updateProfileRoles()">
+                <option value="" disabled selected>Select Group</option>
+              </select>
+              <select id="profEditRole" class="form-input" disabled>
+                <option value="" disabled selected>Select Role</option>
+              </select>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="saveProfile()" style="width: 100%;">Save Changes</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-password">
+      <div class="content-card">
+        <div class="card-title">Change Password</div>
+        <div class="form-group" style="max-width:360px;">
+          <label class="form-label">Current Password</label>
+          <input class="form-input" type="password" />
+        </div>
+        <div class="form-group" style="max-width:360px;">
+          <label class="form-label">New Password</label>
+          <input class="form-input" type="password" placeholder="Min. 8 characters"/>
+        </div>
+        <div class="form-group" style="max-width:360px;">
+          <label class="form-label">Confirm New Password</label>
+          <input class="form-input" type="password" placeholder="Re-enter new passw..."/>
+        </div>
+        <button class="btn btn-primary" onclick="showToast('Password updated! (Frontend only)', 'success')">Update Password</button>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="panel-picture">
+      <div class="content-card">
+        <div class="card-title">Profile Picture</div>
+        <div class="pic-current">
+          <img id="avatarPreview" src="" alt="Avatar" style="width:90px; height:90px; border-radius:50%; object-fit:cover; background:var(--green); display:none;">
+          <div class="pic-avatar" id="picAvatarText">--</div>
+          <div class="pic-caption">Current profile picture</div>
+        </div>
+        <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+          <div style="font-size: 32px; margin-bottom: 10px;">📷</div>
+          <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Click to upload photo</div>
+          <div style="font-size: 12px; color: var(--text3);">Accepted formats: JPG, PNG · Max 2MB</div>
+          <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="previewAvatar(event)"/>
+        </div>
+        <button class="btn btn-primary" onclick="saveProfile()" style="width:100%;">Save Profile Picture</button>
+      </div>
+    </div>
+
+  </div>
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <script src="app.js"></script>
+  <script>
+    function switchTab(name, el) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('panel-' + name).classList.add('active');
+    }
+  </script>
+</body>
+</html>

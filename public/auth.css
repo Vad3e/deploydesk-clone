@@ -1,0 +1,382 @@
+/* ============================================================
+   DeployDesk — auth.css
+   Add this AFTER styles.css in login.html and signup.html:
+   <link rel="stylesheet" href="auth.css">
+
+   Also add Inter font in <head> (alongside your Roboto link):
+   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+============================================================ */
+
+/* ── ROOT: Auth-specific token overrides ─────────────────── */
+:root {
+  --accent:       #2b974a;
+  --accent-dark:  #238645;
+  --accent-dim:   rgba(43, 151, 74, 0.12);
+  --danger-dim:   rgba(231, 76, 60, 0.10);
+  --font-auth:    'Inter', 'Roboto', Arial, sans-serif;
+}
+
+/* ── FIX: styles.css kills focus ring on email/password ─────
+   This override restores the green focus ring for auth pages. */
+.auth-page input[type="email"]:focus,
+.auth-page input[type="password"]:focus,
+.auth-card input:focus,
+.auth-card select:focus {
+  outline: none;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-dim) !important;
+  background: #ffffff !important;
+}
+
+/* ── NAV: Green brand bar ───────────────────────────────────
+   Overrides the default white pub-nav from styles.css        */
+.pub-nav {
+  background: #4caf50 !important;
+  border-bottom: none !important;
+  backdrop-filter: none !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14) !important;
+}
+.pub-nav .logo-text { color: #000 !important; }
+.pub-nav .nav-link  { color: #111 !important; }
+.pub-nav .nav-link:hover {
+  background: rgba(0, 0, 0, 0.10) !important;
+  color: #000 !important;
+  font-weight: 600;
+}
+.pub-nav .nav-link.active-route {
+  background: rgba(0, 0, 0, 0.16) !important;
+  color: #000 !important;
+  font-weight: 700;
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+}
+/* Plain CTA style for "Log In" link on signup page */
+.pub-nav .nav-link.nav-cta {
+  background: rgba(0, 0, 0, 0.16);
+  border: 1.5px solid rgba(0, 0, 0, 0.12);
+  color: #000 !important;
+  font-weight: 700;
+}
+.pub-nav .nav-link.nav-cta:hover {
+  background: rgba(0, 0, 0, 0.22) !important;
+}
+
+/* ── PAGE LAYOUT ────────────────────────────────────────────*/
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 96px 20px 48px;
+  background: #f0f2f5;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── CARD ───────────────────────────────────────────────────*/
+.auth-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  border-radius: 20px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 520px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.09), 0 1px 4px rgba(0, 0, 0, 0.04);
+  position: relative;
+  z-index: 1;
+  animation: fadeUp 0.35s ease both;
+  margin-bottom: 24px;
+}
+@media (max-width: 560px) {
+  .auth-card { padding: 28px 18px; border-radius: 16px; }
+}
+
+/* ── HEADING ────────────────────────────────────────────────*/
+.auth-title {
+  font-family: var(--font-auth);
+  font-size: 22px;
+  font-weight: 700;
+  color: #111827;
+  text-align: center;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+.auth-sub {
+  font-family: var(--font-auth);
+  font-size: 14px;
+  color: #6b7280;
+  text-align: center;
+  margin-bottom: 28px;
+  line-height: 1.65;
+  max-width: 340px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── FORM LABELS ────────────────────────────────────────────
+   Labels are written in sentence case in HTML; CSS uppercases */
+.auth-card .form-group label,
+.auth-card .form-label {
+  font-family: var(--font-auth);
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* ── INPUTS ─────────────────────────────────────────────────*/
+.auth-card .form-input,
+.auth-card .form-group input,
+.auth-card .form-group select {
+  font-family: var(--font-auth);
+  font-size: 15px;
+  color: #111827;
+  background: #ffffff;
+  border: 1.5px solid #e2e6ea;
+  border-radius: 10px;
+  padding: 11px 14px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.auth-card .form-input::placeholder,
+.auth-card .form-group input::placeholder { color: #c1c7ce; }
+
+.auth-card .form-input:hover:not(:focus):not(.is-error):not(:disabled),
+.auth-card .form-group input:hover:not(:focus):not(.is-error):not(:disabled) {
+  border-color: #c5cad1;
+}
+
+/* Error state */
+.auth-card .form-input.is-error,
+.auth-card .form-group input.is-error,
+.auth-card .form-group input.error {
+  border-color: #e74c3c;
+  box-shadow: 0 0 0 3px var(--danger-dim);
+}
+
+/* Disabled state */
+.auth-card .form-input:disabled,
+.auth-card .form-group input:disabled,
+.auth-card .form-group select:disabled {
+  background: #f4f5f7;
+  color: #9ca3af;
+  cursor: not-allowed;
+  border-color: #e8ecef;
+}
+.auth-card select.form-input,
+.auth-card .form-group select { cursor: pointer; }
+
+/* ── INLINE ERROR TEXT ──────────────────────────────────────*/
+.form-err {
+  font-family: var(--font-auth);
+  font-size: 12px;
+  font-weight: 500;
+  color: #e74c3c;
+  margin-top: 5px;
+  display: none;       /* app.js makes it visible */
+  line-height: 1.4;
+}
+
+/* ── VALIDATION BANNER (full-form alert) ────────────────────*/
+.validation-banner {
+  display: none;
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-family: var(--font-auth);
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 18px;
+  text-align: center;
+  line-height: 1.5;
+}
+.validation-banner.error   { background: #fff0f0; color: #c0392b; border: 1px solid #ffcaca; }
+.validation-banner.success { background: #eafbf1; color: #158244; border: 1px solid #c3f1d5; }
+/* Signup uses .alert / .alert-err / .alert-succ — normalize */
+.alert          { display: none; padding: 11px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; margin-bottom: 18px; text-align: center; }
+.alert-err      { background: #fff0f0; color: #c0392b; border: 1px solid #ffcaca; }
+.alert-succ     { background: #eafbf1; color: #158244; border: 1px solid #c3f1d5; }
+
+/* ── FORM GROUP & ROWS ──────────────────────────────────────*/
+.auth-card .form-group { margin-bottom: 16px; }
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.form-row .form-group { margin-bottom: 0; }
+@media (max-width: 480px) {
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .form-row .form-group { margin-bottom: 16px; }
+}
+
+/* ── PASSWORD WRAPPER ───────────────────────────────────────*/
+.password-wrapper { position: relative; }
+.password-wrapper .form-input,
+.password-wrapper input { padding-right: 52px !important; }
+
+/* Text-based Show/Hide button (replaces the <img> toggle) */
+.pass-toggle-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  font-family: var(--font-auth);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+  user-select: none;
+  line-height: 1;
+  transition: opacity 0.15s;
+}
+.pass-toggle-btn:hover { opacity: 0.75; text-decoration: underline; }
+
+/* Legacy <img> toggle fallback (kept for app.js compatibility) */
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  opacity: 0.5;
+  transition: opacity 0.15s;
+}
+.password-toggle:hover { opacity: 0.9; }
+
+/* ── FORGOT PASSWORD ROW ────────────────────────────────────*/
+.forgot-row {
+  margin-top: -4px;
+  margin-bottom: 22px;
+  text-align: left;
+}
+
+/* ── LINKS ──────────────────────────────────────────────────*/
+.link {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+  font-size: inherit;
+}
+.link:hover { text-decoration: underline; }
+
+/* ── SUBMIT BUTTON ──────────────────────────────────────────*/
+.btn.btn-auth {
+  padding: 13px 18px;
+  font-size: 15px;
+  font-weight: 600;
+  border-radius: 10px;
+  letter-spacing: 0.02em;
+  font-family: var(--font-auth);
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover {
+  background: var(--accent-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(43, 151, 74, 0.28);
+}
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled,
+.btn-primary.loading {
+  background: #a8d5a8;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ── AUTH FOOTER TEXT ───────────────────────────────────────*/
+.auth-footer-text,
+.auth-footer {
+  text-align: center;
+  margin-top: 18px;
+  font-family: var(--font-auth);
+  font-size: 14px;
+  color: #6b7280;
+}
+.auth-footer-text a,
+.auth-footer .link { color: var(--accent); font-weight: 700; }
+.auth-footer-text a:hover,
+.auth-footer .link:hover { text-decoration: underline; }
+
+/* ── ROLE SELECTOR ──────────────────────────────────────────*/
+.role-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.role-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e6ea;
+  border-radius: 12px;
+  padding: 20px 14px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.role-card:hover {
+  border-color: var(--accent);
+  background: rgba(43, 151, 74, 0.03);
+  box-shadow: 0 2px 12px rgba(43, 151, 74, 0.1);
+}
+.role-card.selected {
+  border-color: var(--accent);
+  border-width: 2px;
+  background: rgba(43, 151, 74, 0.06);
+  box-shadow: 0 0 0 3px rgba(43, 151, 74, 0.1);
+}
+.role-icon        { margin-bottom: 10px; }
+.role-name        { font-family: var(--font-auth); font-weight: 700; font-size: 15px; color: #111827; margin-bottom: 4px; }
+.role-desc        { font-family: var(--font-auth); font-size: 13px; color: #6b7280; line-height: 1.4; }
+
+/* ── MEMBER POSITION SECTION ────────────────────────────────*/
+#memberPositionField {
+  background: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
+}
+#memberPositionField .form-label,
+#memberPositionField label { color: var(--accent) !important; }
+.member-hint {
+  font-size: 13px;
+  color: #9ca3af;
+  margin-bottom: 12px;
+  line-height: 1.45;
+  font-family: var(--font-auth);
+}
+
+/* ── TOAST ──────────────────────────────────────────────────*/
+.toast-wrap {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── HIDE BROWSER BUILT-IN PASSWORD REVEALS ─────────────────*/
+input[type="password"]::-ms-reveal,
+input[type="password"]::-webkit-credentials-auto-fill-button { display: none; }
+input[type="password"]::-webkit-outer-spin-button,
+input[type="password"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }

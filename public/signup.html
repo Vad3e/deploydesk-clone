@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DeployDesk — Sign Up</title>
+
+  <!-- Fonts: Inter (primary UI) + Roboto (fallback) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <!-- Base app styles, then auth overrides -->
+  <!-- NOTE: All duplicate :root variables and component styles that were
+       previously inline here have been moved to auth.css. -->
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="auth.css">
+</head>
+<body>
+
+  <!-- ── NAVBAR ─────────────────────────────────────────── -->
+  <!-- On the signup page, "Log In" is a plain CTA (not active-route)
+       because this IS the signup page — the user is already here.    -->
+  <nav class="pub-nav">
+    <a href="index.html" class="logo">
+      <div class="logo-icon"></div>
+      <span class="logo-text">DeployDesk</span>
+    </a>
+    <div class="spacer"></div>
+    <div class="nav-links">
+      <a href="login.html" class="nav-link nav-cta">Log In</a>
+    </div>
+  </nav>
+
+  <!-- ── AUTH PAGE ──────────────────────────────────────── -->
+  <div class="auth-page">
+    <div class="auth-bg"></div>
+
+    <div class="auth-card">
+
+      <!-- Heading -->
+      <div class="auth-title form-header">Create Account</div>
+      <div class="auth-sub">
+        Connect, request, and contribute within the DeployDesk community.
+      </div>
+
+      <!-- Top-of-form alerts (shown/hidden by app.js) -->
+      <div class="alert alert-err"  id="signupErr"></div>
+      <div class="alert alert-succ" id="signupSuccess"></div>
+
+      <!-- ── Role selector ── -->
+      <div class="form-group">
+        <label class="form-label">Select role</label>
+        <div class="role-grid">
+
+          <div class="role-card" onclick="selectRole(this, 'requester')">
+            <div class="role-icon">
+              <img src="img/reqrole.png" alt="" aria-hidden="true" width="40" height="40">
+            </div>
+            <div class="role-name">Requester</div>
+            <div class="role-desc">Submit service requests and track progress.</div>
+          </div>
+
+          <div class="role-card" onclick="selectRole(this, 'member')">
+            <div class="role-icon">
+              <img src="img/memrole.png" alt="" aria-hidden="true" width="40" height="40">
+            </div>
+            <div class="role-name">Member</div>
+            <div class="role-desc">Receive assignments and provide assistance.</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Full name + Contact (2-col, stacks on mobile) ── -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full name *</label>
+          <input class="form-input" type="text" id="suName" placeholder="e.g. Maria Santos" autocomplete="name"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contact number *</label>
+          <input class="form-input" type="tel" id="suContact" placeholder="+63 9XX XXX XXXX" autocomplete="tel"/>
+        </div>
+      </div>
+
+      <!-- ── Campus email (full-width) ── -->
+      <div class="form-group">
+        <label class="form-label">Campus email *</label>
+        <input class="form-input" type="email" id="suEmail" placeholder="yourname@school.edu" autocomplete="email"/>
+      </div>
+
+      <!-- ── Member: org + role (hidden until "Member" is selected) ── -->
+      <div id="memberPositionField" style="display: none;">
+        <label class="form-label">Organization &amp; role</label>
+        <p class="member-hint">
+          Your role determines how coverage responsibilities are assigned within your organization.
+        </p>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Organization</label>
+            <select class="form-input" id="suOrgGroup" onchange="updateDynamicRoles()">
+              <option value="" disabled selected>Select organization</option>
+              <option value="IMAGE">IMAGE</option>
+              <option value="Cognizant">Cognizant</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Role</label>
+            <select class="form-input" id="suMemberPosition" disabled>
+              <option value="" disabled selected>Select role</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Password + Confirm (2-col, stacks on mobile) ── -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <div class="password-wrapper">
+            <input
+              class="form-input"
+              type="password"
+              id="suPass"
+              placeholder="••••••••"
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              class="pass-toggle-btn"
+              onclick="togglePassword('suPass', this)"
+              aria-label="Show password"
+            >Show</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm password *</label>
+          <div class="password-wrapper">
+            <input
+              class="form-input"
+              type="password"
+              id="suPassConfirm"
+              placeholder="••••••••"
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              class="pass-toggle-btn"
+              onclick="togglePassword('suPassConfirm', this)"
+              aria-label="Show confirm password"
+            >Show</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Submit ── -->
+      <button
+        type="button"
+        class="btn btn-primary btn-full btn-auth"
+        style="margin-top: 6px;"
+        onclick="doSignup()"
+      >Create Account</button>
+
+      <!-- Footer -->
+      <div class="auth-footer">
+        Already have an account? <a href="login.html" class="link">Log In</a>
+      </div>
+
+    </div><!-- /.auth-card -->
+  </div><!-- /.auth-page -->
+
+  <!-- Toast container (used by app.js) -->
+  <div class="toast-wrap" id="toastWrap"></div>
+
+  <!-- App logic -->
+  <script src="app.js"></script>
+
+  <script>
+    /**
+     * Toggles password visibility and updates the button label.
+     * Works with both the text-button approach (above) and
+     * the legacy <img> approach if you switch back.
+     */
+    function togglePassword(inputId, trigger) {
+      const input = document.getElementById(inputId);
+      const isHidden = input.type === 'password';
+
+      input.type = isHidden ? 'text' : 'password';
+
+      // Text button variant
+      if (trigger && trigger.tagName === 'BUTTON') {
+        trigger.textContent = isHidden ? 'Hide' : 'Show';
+        trigger.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+      }
+      // Legacy <img> variant (kept for backwards-compat)
+      if (trigger && trigger.tagName === 'IMG') {
+        trigger.src = isHidden ? 'img/show.png' : 'img/nopass.png';
+      }
+    }
+
+    /**
+     * Populates the role dropdown when an organization is chosen.
+     * Reads from window.groupRoles set by app.js.
+     */
+    function updateDynamicRoles() {
+      const groupValue = document.getElementById('suOrgGroup').value;
+      const roleSelect = document.getElementById('suMemberPosition');
+
+      roleSelect.innerHTML = '<option value="" disabled selected>Select role</option>';
+
+      if (groupValue && window.groupRoles && window.groupRoles[groupValue]) {
+        window.groupRoles[groupValue].forEach(role => {
+          const opt       = document.createElement('option');
+          opt.value       = role;
+          opt.textContent = role;
+          roleSelect.appendChild(opt);
+        });
+        roleSelect.disabled = false;
+      } else {
+        roleSelect.disabled = true;
+      }
+    }
+
+    /**
+     * Highlights the chosen role card and shows/hides the
+     * member-position section for the "member" role.
+     */
+    function selectRole(card, role) {
+      card.closest('.role-grid')
+          .querySelectorAll('.role-card')
+          .forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+
+      const positionField = document.getElementById('memberPositionField');
+      if (!positionField) return;
+
+      if (role === 'member') {
+        positionField.style.display = 'block';
+      } else {
+        positionField.style.display = 'none';
+        const orgSel  = document.getElementById('suOrgGroup');
+        const roleSel = document.getElementById('suMemberPosition');
+        if (orgSel)  orgSel.value = '';
+        if (roleSel) {
+          roleSel.innerHTML = '<option value="" disabled selected>Select role</option>';
+          roleSel.disabled  = true;
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>
