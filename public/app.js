@@ -1,4 +1,49 @@
 // ============================================================
+// GLOBAL CONFIG & SECURE API WRAPPER
+// ============================================================
+const API_BASE = 'https://backend-88na.onrender.com/api';
+//const API_BASE = 'http://localhost:3000/api';
+
+/**
+ * Centralized fetch wrapper that automatically attaches JWT tokens,
+ * forces JSON headers where applicable, and handles global 401 (Unauthorized) errors.
+ */
+async function apiFetch(endpoint, options = {}) {
+    const token = localStorage.getItem('dd_authToken');
+    
+    options.headers = options.headers || {};
+    
+    // Auto-set JSON header if body is a string (and not FormData)
+    if (options.body && typeof options.body === 'string' && !options.headers['Content-Type']) {
+        options.headers['Content-Type'] = 'application/json';
+    }
+    
+    // Attach secure token
+    if (token) {
+        options.headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE}${endpoint}`, options);
+    
+    // Security Gate: Kick out user if token is invalid/expired (unless on auth pages)
+    if (response.status === 401) {
+        const path = window.location.pathname;
+        if (!path.includes('login') && !path.includes('signup') && !path.includes('index')) {
+            doLogout('Session expired. Please log in again.');
+        }
+        return { success: false, message: 'Session expired' };
+    }
+    
+    // Parse JSON safely
+    try {
+        return await response.json();
+    } catch (e) {
+        if (!response.ok) throw new Error('Server error or invalid response format');
+        return { success: true }; // Fallback for 200 OK without JSON body
+    }
+}
+
+// ============================================================
 // GLOBAL STATE & ROUTING
 // ============================================================
 let currentRole = 'member';
@@ -27,6 +72,7 @@ function goTo(page) {
   window.location.href = routes[page] || 'index.html';
 }
 
+
 // ⚡ BULLETPROOF FALLBACKS
 window.groupRoles = { 
     'IMAGE': ['Photographer', 'Videographer', 'Writer', 'Designer', 'Web Developer'], 
@@ -38,8 +84,7 @@ window.sysFlags = { emails: 'Enabled (Active)' };
 
 async function fetchGlobalSettings() {
     try {
-        const res = await fetch(`https://backend-88na.onrender.com/api/settings?_nocache=${Date.now()}`);
-        const data = await res.json();
+        const data = await apiFetch(`/settings?_nocache=${Date.now()}`);
         
         if (data.success && data.settings) {
             if (data.settings.groupRoles && Object.keys(data.settings.groupRoles).length > 0) {
@@ -91,15 +136,16 @@ async function doLogin() {
   }
   
   try {
-    const response = await fetch('https://backend-88na.onrender.com/api/login', {
+    const data = await apiFetch('/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password: pass })
     });
-    const data = await response.json();
 
     if (data.success) {
-      sessionStorage.setItem('dd_currentUser', JSON.stringify(data.user));
+      // Securely store Token and User Profile persistently
+      if(data.token) localStorage.setItem('dd_authToken', data.token);
+      localStorage.setItem('dd_currentUser', JSON.stringify(data.user));
+      
       if (data.user.role === 'admin') window.location.href = 'admin-dashboard.html';
       else if (data.user.role === 'requester') window.location.href = 'requester-dashboard.html';
       else window.location.href = 'dashboard.html';
@@ -165,15 +211,15 @@ async function doSignup() {
   }
 
   try {
-    const response = await fetch('https://backend-88na.onrender.com/api/signup', {
+    const data = await apiFetch('/signup', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password: pass, fullName: name, contact, role: actualRole, memberPosition: finalPosition })
     });
-    const data = await response.json();
 
     if (data.success) {
-      sessionStorage.setItem('dd_currentUser', JSON.stringify(data.user));
+      if(data.token) localStorage.setItem('dd_authToken', data.token);
+      localStorage.setItem('dd_currentUser', JSON.stringify(data.user));
+      
       if(successBanner) { successBanner.textContent = `Account created! Redirecting...`; successBanner.style.display = 'block'; } 
       setTimeout(() => {
           if (data.user.role === 'admin') window.location.href = 'admin-dashboard.html';
@@ -201,11 +247,9 @@ async function requestPasswordReset() {
         return;
     }
     try {
-        const response = await fetch('https://backend-88na.onrender.com/api/forgot-password', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
+        const data = await apiFetch('/forgot-password', {
+            method: 'POST', body: JSON.stringify({ email })
         });
-        const data = await response.json();
         if(data.success) {
             if(succBanner) { succBanner.textContent = 'A reset link was sent to your email.'; succBanner.style.display = 'block'; }
             document.getElementById('resetEmail').value = '';
@@ -237,11 +281,9 @@ async function submitNewPassword() {
     }
 
     try {
-        const response = await fetch('https://backend-88na.onrender.com/api/reset-password', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token, newPassword: pass1 })
+        const data = await apiFetch('/reset-password', {
+            method: 'POST', body: JSON.stringify({ token, newPassword: pass1 })
         });
-        const data = await response.json();
         if(data.success) {
             if(succBanner) { succBanner.textContent = 'Password updated successfully! Redirecting to login...'; succBanner.style.display = 'block'; }
             setTimeout(() => { window.location.href = 'login.html'; }, 2000);
@@ -275,9 +317,10 @@ function goSub(id) {
   currentSub = id;
 }
 
-function doLogout() {
-  sessionStorage.removeItem('dd_currentUser');
-  showToast('Logged out successfully.','info');
+function doLogout(reason = 'Logged out successfully.') {
+  localStorage.removeItem('dd_currentUser');
+  localStorage.removeItem('dd_authToken');
+  showToast(reason, 'info');
   setTimeout(() => goTo('landing'), 1000);
 }
 
@@ -302,11 +345,9 @@ async function saveSystemSettings() {
     };
 
     try {
-        const res = await fetch('https://backend-88na.onrender.com/api/settings', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ settings: newSettings })
+        const data = await apiFetch('/settings', {
+            method: 'POST', body: JSON.stringify({ settings: newSettings })
         });
-        const data = await res.json();
         if (data.success) {
             showToast('Global configurations saved securely to database.', 'success');
             window.groupRoles = newSettings.groupRoles; 
@@ -475,23 +516,24 @@ window.addEventListener('DOMContentLoaded', () => {
       window.addDynamicRow();
   }
 
-  // ⚡ FIX: Adjusted Authentication and Redirect Logic
-  const currentUserStr = sessionStorage.getItem('dd_currentUser');
+  // ⚡ FIX: Adjusted Authentication and Redirect Logic using secure token rules
+  const currentUserStr = localStorage.getItem('dd_currentUser');
+  const token = localStorage.getItem('dd_authToken');
   const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
   
   const isAuthPage = window.location.pathname.includes('login') || window.location.pathname.includes('signup');
   const isProtected = (document.querySelector('.app-shell') || document.querySelector('.profile-wrap') || document.querySelector('.container')) && !isAuthPage;
   
-  if (isAuthPage && currentUser) {
+  if (isAuthPage && token && currentUser) {
       if (currentUser.role === 'admin') window.location.href = 'admin-dashboard.html';
       else if (currentUser.role === 'requester') window.location.href = 'requester-dashboard.html';
       else window.location.href = 'dashboard.html';
-  } else if (isProtected && !currentUser) {
+  } else if (isProtected && (!token || !currentUser)) {
       goTo('login');
   } else if (isProtected && currentUser) {
 
-    fetch(`https://backend-88na.onrender.com/api/users?_nocache=${Date.now()}`).then(res => res.json()).then(data => {
-        if(data.success) {
+    apiFetch(`/users?_nocache=${Date.now()}`).then(data => {
+        if(data && data.success) {
             const freshUser = data.users.find(u => u.id === currentUser.id);
             const currentPos = currentUser.position || null;
             const freshPos = freshUser.position || null;
@@ -499,7 +541,7 @@ window.addEventListener('DOMContentLoaded', () => {
             if (freshUser && (freshUser.role !== currentUser.role || freshPos !== currentPos)) {
                 currentUser.role = freshUser.role;
                 currentUser.position = freshPos;
-                sessionStorage.setItem('dd_currentUser', JSON.stringify(currentUser));
+                localStorage.setItem('dd_currentUser', JSON.stringify(currentUser));
                 window.location.reload(); 
             }
         }
@@ -569,7 +611,7 @@ window.addEventListener('DOMContentLoaded', () => {
         if(document.getElementById('profRole')) document.getElementById('profRole').value = 'REQUESTER';
     }
 
-    startAutoRefresh();
+    if (typeof startAutoRefresh === 'function') startAutoRefresh();
   }
 });
 
@@ -600,7 +642,7 @@ function previewAvatar(event) {
 }
 
 function loadProfileData() {
-    const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
     if (!currentUser) return;
     
     if(document.getElementById('profEditName')) document.getElementById('profEditName').value = currentUser.name || '';
@@ -685,7 +727,7 @@ function loadProfileData() {
 }
 
 async function saveProfile() {
-    const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
     if (!currentUser) return;
     const name = document.getElementById('profEditName') ? document.getElementById('profEditName').value.trim() : currentUser.name;
     const contact = document.getElementById('profEditContact') ? document.getElementById('profEditContact').value.trim() : currentUser.contact;
@@ -704,16 +746,15 @@ async function saveProfile() {
     }
 
     try {
-        const response = await fetch('https://backend-88na.onrender.com/api/users/update', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
+        const data = await apiFetch('/users/update', {
+            method: 'POST', 
             body: JSON.stringify({ userId: currentUser.id, fullName: name, contact: contact, position: position, avatar: base64Avatar })
         });
-        const data = await response.json();
-        if (data.success) {
+        if (data && data.success) {
             showToast('Profile Saved!', 'success');
             currentUser.name = name; currentUser.contact = contact; currentUser.position = position;
             if (base64Avatar) currentUser.avatar = base64Avatar; 
-            sessionStorage.setItem('dd_currentUser', JSON.stringify(currentUser));
+            localStorage.setItem('dd_currentUser', JSON.stringify(currentUser));
             loadProfileData(); 
             if (currentUser.avatar) {
                 document.querySelectorAll('.sb-av').forEach(av => {
@@ -743,15 +784,13 @@ function updateProfileRoles() {
 }
 
 async function loadUserWorkload() {
-    const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
     if (!currentUser || (currentUser.role !== 'member' && currentUser.role !== 'administrative')) return;
 
     try {
-        // ⚡ FIX: Added cache-buster to instantly pull fresh data!
-        const res = await fetch(`https://backend-88na.onrender.com/api/user-stats/${currentUser.id}?_nocache=${Date.now()}`);
-        const data = await res.json();
+        const data = await apiFetch(`/user-stats/${currentUser.id}?_nocache=${Date.now()}`);
         
-        if (data.success) {
+        if (data && data.success) {
             const assigned = data.stats.totalAssigned || 0;
             const upcoming = data.stats.upcomingEvents || 0;
             
@@ -778,20 +817,12 @@ async function loadUserNotifications() {
     const badge = document.getElementById('notifBadge');
     
     try {
-        const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+        const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
         if (!currentUser) return;
         
-        // ⚡ FIX: Added cache-buster to instantly pull fresh data!
-        const response = await fetch(`https://backend-88na.onrender.com/api/notifications/${currentUser.id}?_nocache=${Date.now()}`);
+        const data = await apiFetch(`/notifications/${currentUser.id}?_nocache=${Date.now()}`);
         
-        if (!response.ok) {
-            if(list) list.innerHTML = "<div style='text-align:center; color:var(--text3); padding:20px;'>You have no new notifications.</div>";
-            if(badge) badge.style.display = 'none';
-            return;
-        }
-        
-        const data = await response.json();
-        if (data.success && Array.isArray(data.notifications)) {
+        if (data && data.success && Array.isArray(data.notifications)) {
             if (data.notifications.length > 0) {
                 let html = '';
                 data.notifications.forEach(n => {
@@ -834,12 +865,11 @@ async function loadUserNotifications() {
 
 async function handleNotifClick(eventId, notifId) {
     try {
-        await fetch('https://backend-88na.onrender.com/api/notifications/read', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({notifId})
+        await apiFetch('/notifications/read', {
+            method: 'POST', body: JSON.stringify({notifId})
         });
         
-        const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+        const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
         if (currentUser) {
             if (currentUser.role === 'requester') {
                 const firstTab = document.querySelectorAll('.nav-link')[0]; 
@@ -854,15 +884,13 @@ async function handleNotifClick(eventId, notifId) {
 }
 
 async function markAllNotifsRead() {
-    const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
     if (!currentUser) return;
     try {
-        const response = await fetch('https://backend-88na.onrender.com/api/notifications/read-all', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.id })
+        const data = await apiFetch('/notifications/read-all', {
+            method: 'POST', body: JSON.stringify({ userId: currentUser.id })
         });
-        const data = await response.json();
-        if (data.success) {
+        if (data && data.success) {
             showToast('All notifications marked as read.', 'success');
             loadUserNotifications();
         }
@@ -874,7 +902,7 @@ async function markAllNotifsRead() {
    EVENT PIPELINE & MODALS
 ============================================================ */
 async function submitReq() {
-    const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
     const titleEl = document.getElementById('rTitle');
     const typeEl = document.getElementById('rType');
     const typeOtherEl = document.getElementById('rTypeOther');
@@ -925,9 +953,8 @@ async function submitReq() {
 
     if (window.schedRules.monthlyLimit > 0) {
         try {
-            const checkRes = await fetch('https://backend-88na.onrender.com/api/events');
-            const checkData = await checkRes.json();
-            if (checkData.success) {
+            const checkData = await apiFetch('/events');
+            if (checkData && checkData.success) {
                 const reqMonth = selectedDate.getMonth();
                 const reqYear = selectedDate.getFullYear();
                 const currentMonthCount = checkData.events.filter(e => {
@@ -997,10 +1024,10 @@ async function submitReq() {
     }
 
     try {
-        const response = await fetch('https://backend-88na.onrender.com/api/events', { method: 'POST', body: formData });
-        const data = await response.json();
+        // FormData correctly bypasses the JSON auto-header in apiFetch
+        const data = await apiFetch('/events', { method: 'POST', body: formData });
 
-        if (data.success) {
+        if (data && data.success) {
             showToast('Ticket submitted successfully!', 'success');
             document.getElementById('rTitle').value = ''; 
             document.getElementById('rDesc').value = ''; 
@@ -1031,7 +1058,7 @@ async function viewEventDetails(id) {
     const ev = window.cachedEvents ? window.cachedEvents.find(e => e.id === id) : null;
     if (!ev) return;
 
-    const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
     const isAdministrative = currentUser && currentUser.role === 'administrative';
     const isAdmin = currentUser && currentUser.role === 'admin';
     
@@ -1097,7 +1124,6 @@ async function viewEventDetails(id) {
                     ${attachmentsBlock} 
                 </div>`;
 
-    // ⚡ FIX: Only show Admin Panel for regular Admins OR Admin Assistants specifically viewing the Roster tab
     let showAdminPanel = isAdmin || (isAdministrative && currentSub === 'roster');
 
     if (showAdminPanel) {
@@ -1106,10 +1132,9 @@ async function viewEventDetails(id) {
                 <h4 style="margin-bottom: 10px; color:var(--green); font-family:'Syne', sans-serif;">⚡ Coverage Management</h4>`;
             
             try {
-                const cRes = await fetch(`https://backend-88na.onrender.com/api/allocations/admin/${id}`);
-                const cData = await cRes.json();
+                const cData = await apiFetch(`/allocations/admin/${id}`);
                 
-                if (cData.success && cData.allocations) {
+                if (cData && cData.success && cData.allocations) {
                     
                     let minWorkloadsByRole = {};
                     
@@ -1128,6 +1153,7 @@ async function viewEventDetails(id) {
                             }
                         }
                     });
+                    
 
                     cData.allocations.forEach(a => {
                         if (a.status === 'declined') return;
@@ -1200,13 +1226,37 @@ async function viewEventDetails(id) {
             modalHtml += adminPanel + `</div>`;
         }
     }
+    // ⚡ NEW: Show Accept/Decline panel for Members viewing their pending matches
+    let memberActionBlock = '';
+    if (currentUser && (currentUser.role === 'member' || currentUser.role === 'administrative')) {
+        try {
+            const taskData = await apiFetch(`/allocations/member/${currentUser.id}`);
+            if (taskData && taskData.success && taskData.tasks) {
+                // Look for a task linked to this specific event that hasn't been answered yet
+                const myTask = taskData.tasks.find(t => t.event_id === id && t.status === 'notified');
+                
+                if (myTask) {
+                    memberActionBlock = `
+                    <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px;">
+                        <h4 style="margin-bottom: 10px; color:var(--green); font-family:'Syne', sans-serif;">⚡ Your Coverage Request</h4>
+                        <div style="font-size: 13px; color: var(--text2); margin-bottom: 12px;">You have been matched for the role of <strong>${myTask.required_role}</strong>. Do you accept this assignment?</div>
+                        <div style="display:flex; gap:10px;">
+                            <button class="btn btn-primary" style="flex:1; justify-content:center;" onclick="acceptCcaaTask(${myTask.id})">✅ Accept Task</button>
+                            <button class="btn" style="border: 1.5px solid #d02020; color: #d02020; flex:1; justify-content:center; background: transparent;" onclick="declineCcaaTask(${myTask.id})">❌ Decline</button>
+                        </div>
+                    </div>`;
+                }
+            }
+        } catch (e) { console.error("Error fetching member tasks for modal", e); }
+    }
+    
+    modalHtml += memberActionBlock;
 
     let assignedTeamBlock = '';
     if (ev.status.toLowerCase() === 'approved') {
         try {
-            const teamRes = await fetch(`https://backend-88na.onrender.com/api/allocations/admin/${id}`);
-            const teamData = await teamRes.json();
-            if (teamData.success && teamData.allocations) {
+            const teamData = await apiFetch(`/allocations/admin/${id}`);
+            if (teamData && teamData.success && teamData.allocations) {
                 const team = teamData.allocations.filter(a => a.status === 'assigned');
                 let displayTeam = team;
                 if (myOrg) {
@@ -1243,12 +1293,10 @@ async function viewEventDetails(id) {
 async function deleteEvent(eventId) {
     if(!confirm("⚠️ WARNING: Are you sure you want to permanently delete this event? All associated roster assignments will also be destroyed. This action cannot be undone.")) return;
     try {
-        const response = await fetch('https://backend-88na.onrender.com/api/events/delete', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ eventId: eventId })
+        const data = await apiFetch('/events/delete', {
+            method: 'POST', body: JSON.stringify({ eventId: eventId })
         });
-        const data = await response.json();
-        if (data.success) {
+        if (data && data.success) {
             showToast('Event permanently deleted.', 'success');
             document.getElementById('eventDetailsModal').style.display = 'none';
             if (typeof loadDashboardData === 'function') loadDashboardData(); 
@@ -1262,12 +1310,10 @@ async function forwardRosterToAdmin(eventId, myOrg) {
     const checkboxes = document.querySelectorAll('.ccaa-cb:checked:not(:disabled)');
     const selectedAllocations = Array.from(checkboxes).map(cb => parseInt(cb.value));
     try {
-        const response = await fetch('https://backend-88na.onrender.com/api/events/roster', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ eventId, selectedAllocations, myOrg })
+        const data = await apiFetch('/events/roster', {
+            method: 'POST', body: JSON.stringify({ eventId, selectedAllocations, myOrg })
         });
-        const data = await response.json();
-        if (data.success) {
+        if (data && data.success) {
             showToast(data.message, 'success');
             document.getElementById('eventDetailsModal').style.display = 'none';
             if(typeof loadAdministrativeApprovals === 'function') loadAdministrativeApprovals(); 
@@ -1280,12 +1326,10 @@ async function approveEventWithCandidates(eventId, myOrg) {
     const checkboxes = document.querySelectorAll('.ccaa-cb:checked:not(:disabled)');
     const selectedAllocations = Array.from(checkboxes).map(cb => parseInt(cb.value));
     try {
-        const response = await fetch('https://backend-88na.onrender.com/api/events/status', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ eventId, status: 'approved', selectedAllocations, myOrg })
+        const data = await apiFetch('/events/status', {
+            method: 'POST', body: JSON.stringify({ eventId, status: 'approved', selectedAllocations, myOrg })
         });
-        const data = await response.json();
-        if (data.success) {
+        if (data && data.success) {
             showToast(data.message, 'success');
             document.getElementById('eventDetailsModal').style.display = 'none';
             if(typeof loadAdminApprovals === 'function') loadAdminApprovals(); 
@@ -1297,12 +1341,10 @@ async function approveEventWithCandidates(eventId, myOrg) {
 
 async function updateEventStatus(eventId, newStatus, myOrg) {
     try {
-        const response = await fetch('https://backend-88na.onrender.com/api/events/status', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ eventId, status: newStatus, myOrg })
+        const data = await apiFetch('/events/status', {
+            method: 'POST', body: JSON.stringify({ eventId, status: newStatus, myOrg })
         });
-        const data = await response.json();
-        if (data.success) {
+        if (data && data.success) {
             showToast(data.message, newStatus.includes('reject') ? 'warning' : 'success');
             document.getElementById('eventDetailsModal').style.display = 'none';
             if (typeof loadAdminApprovals === 'function') loadAdminApprovals(); 
@@ -1316,13 +1358,12 @@ async function updateEventStatus(eventId, newStatus, myOrg) {
 ============================================================ */
 async function loadAdminMembers() {
     try {
-        const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+        const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
         const myOrg = (currentUser && currentUser.position) ? currentUser.position.split(' - ')[0] : null;
 
-        const response = await fetch('https://backend-88na.onrender.com/api/users');
-        const data = await response.json();
+        const data = await apiFetch('/users');
         
-        if (data.success) {
+        if (data && data.success) {
             const tbody = document.getElementById('adminMembersBody');
             if (tbody) {
                 let users = data.users;
@@ -1383,46 +1424,40 @@ function filterAdminMembers() {
 async function upgradeUser(userId) {
     if(!confirm("Promote this member to Administrative Assistant?")) return;
     try {
-        const res = await fetch('https://backend-88na.onrender.com/api/users/upgrade', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({userId}) });
-        const data = await res.json();
-        if(data.success) { showToast('User promoted successfully!', 'success'); loadAdminMembers(); } 
+        const data = await apiFetch('/users/upgrade', { method: 'POST', body: JSON.stringify({userId}) });
+        if(data && data.success) { showToast('User promoted successfully!', 'success'); loadAdminMembers(); } 
     } catch(e) {}
 }
 
 async function demoteUser(userId) {
     if(!confirm("Revoke Administrative Assistant privileges? They will return to a standard Member.")) return;
     try {
-        const res = await fetch('https://backend-88na.onrender.com/api/users/demote', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({userId}) });
-        const data = await res.json();
-        if(data.success) { showToast('Admin privileges revoked.', 'info'); loadAdminMembers(); } 
+        const data = await apiFetch('/users/demote', { method: 'POST', body: JSON.stringify({userId}) });
+        if(data && data.success) { showToast('Admin privileges revoked.', 'info'); loadAdminMembers(); } 
     } catch(e) {}
 }
 
 async function removeUser(userId) {
     if(!confirm("WARNING: Are you sure you want to permanently delete this user from the system?")) return;
     try {
-        const res = await fetch('https://backend-88na.onrender.com/api/users/remove', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({userId}) });
-        const data = await res.json();
-        if(data.success) { showToast('User removed from system.', 'success'); loadAdminMembers(); } 
+        const data = await apiFetch('/users/remove', { method: 'POST', body: JSON.stringify({userId}) });
+        if(data && data.success) { showToast('User removed from system.', 'success'); loadAdminMembers(); } 
     } catch(e) {}
 }
 
 async function loadWorkloadRanking() {
     try {
-        const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+        const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
         const myOrg = (currentUser && currentUser.position) ? currentUser.position.split(' - ')[0] : null;
 
-        // ⚡ FIX: Added cache-buster to instantly pull fresh data!
-        const response = await fetch(`https://backend-88na.onrender.com/api/workload-ranking?_nocache=${Date.now()}`);
-        const data = await response.json();
+        const data = await apiFetch(`/workload-ranking?_nocache=${Date.now()}`);
         
-        if (data.success) {
+        if (data && data.success) {
             let ranking = data.ranking;
             if (myOrg) {
                 ranking = ranking.filter(u => u.position && u.position.startsWith(myOrg));
             }
 
-            // Save the ranking globally so the 3rd column can render the Org Members
             window.ORG_MEMBERS_WORKLOAD = ranking;
             if (typeof renderMemberWorkload === 'function') renderMemberWorkload();
 
@@ -1511,26 +1546,23 @@ function renderMySchedule() {
 }
 
 async function saveMySchedule() {
-    const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
     if(!currentUser) return;
     try {
-        const res = await fetch('https://backend-88na.onrender.com/api/schedule', {
-            method: 'POST', headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ userId: currentUser.id, schedule: window.mySchedule })
+        const data = await apiFetch('/schedule', {
+            method: 'POST', body: JSON.stringify({ userId: currentUser.id, schedule: window.mySchedule })
         });
-        const data = await res.json();
-        if(data.success) showToast('Schedule saved successfully!', 'success');
+        if(data && data.success) showToast('Schedule saved successfully!', 'success');
         else showToast('Failed to save schedule', 'error');
     } catch(e) { showToast('Server error', 'error'); }
 }
 
 async function loadSavedSchedule() {
-    const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
     if(!currentUser) return;
     try {
-        const res = await fetch(`https://backend-88na.onrender.com/api/schedule/${currentUser.id}`);
-        const data = await res.json();
-        if(data.success && data.schedule) {
+        const data = await apiFetch(`/schedule/${currentUser.id}`);
+        if(data && data.success && data.schedule) {
             window.mySchedule = typeof data.schedule === 'string' ? JSON.parse(data.schedule) : data.schedule;
             
             document.querySelectorAll('.isched-cell').forEach(cell => {
@@ -1582,7 +1614,7 @@ function renderMasterCalendar() {
 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-        const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+        const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
         const myOrg = (currentUser && currentUser.position) ? String(currentUser.position).split(' - ')[0] : null;
         const events = window.cachedEvents || [];
 
@@ -1721,13 +1753,12 @@ function renderMasterCalendar() {
 
 async function loadDashboardData() {
     try {
-        const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+        const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
         if (!currentUser) return;
         
-        const response = await fetch(`https://backend-88na.onrender.com/api/events?_nocache=${Date.now()}`);
-        const data = await response.json();
+        const data = await apiFetch(`/events?_nocache=${Date.now()}`);
 
-        if (data.success) {
+        if (data && data.success) {
             let events = data.events;
 
             if (currentUser.role === 'requester') {
@@ -1827,16 +1858,13 @@ async function loadDashboardData() {
 
 async function loadDashboardStats() {
     try {
-        const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+        const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
         const myOrg = (currentUser && currentUser.position && (currentUser.role === 'admin' || currentUser.role === 'administrative')) ? currentUser.position.split(' - ')[0] : null;
 
-        const response = await fetch(`https://backend-88na.onrender.com/api/events?_nocache=${Date.now()}`);
-        const data = await response.json();
+        const data = await apiFetch(`/events?_nocache=${Date.now()}`);
+        const usersData = await apiFetch(`/users?_nocache=${Date.now()}`);
         
-        const usersRes = await fetch(`https://backend-88na.onrender.com/api/users?_nocache=${Date.now()}`);
-        const usersData = await usersRes.json();
-        
-        if (data.success && usersData.success) {
+        if (data && data.success && usersData && usersData.success) {
             let events = data.events;
             let users = usersData.users.filter(u => u.role === 'member' || u.role === 'administrative');
             
@@ -1860,12 +1888,11 @@ async function loadDashboardStats() {
 
 async function loadAdministrativeApprovals() {
     try {
-        const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+        const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
         const myOrg = currentUser.position ? currentUser.position.split(' - ')[0] : null;
 
-        const response = await fetch(`https://backend-88na.onrender.com/api/events?_nocache=${Date.now()}`);
-        const data = await response.json();
-        if (data.success) {
+        const data = await apiFetch(`/events?_nocache=${Date.now()}`);
+        if (data && data.success) {
             const pendingEvents = data.events.filter(ev => ev.status.toLowerCase() === 'pending' && isEventForMyOrg(ev, myOrg)).sort((a, b) => b.id - a.id);
             const tbody = document.getElementById('adminRosterBody');
             if (tbody) {
@@ -1892,12 +1919,11 @@ async function loadAdministrativeApprovals() {
 
 async function loadAdminApprovals() {
     try {
-        const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+        const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
         const myOrg = currentUser.position ? currentUser.position.split(' - ')[0] : null;
 
-        const response = await fetch(`https://backend-88na.onrender.com/api/events?_nocache=${Date.now()}`);
-        const data = await response.json();
-        if (data.success) {
+        const data = await apiFetch(`/events?_nocache=${Date.now()}`);
+        if (data && data.success) {
             const pendingEvents = data.events.filter(ev => (ev.status.toLowerCase() === 'pending_admin' || ev.status.toLowerCase() === 'awaiting_initial_admin') && isEventForMyOrg(ev, myOrg)).sort((a, b) => b.id - a.id);
             const tbody = document.getElementById('adminApprovalsBody');
             
@@ -1931,18 +1957,19 @@ async function loadAdminApprovals() {
 }
 
 async function loadMemberOpportunities() {
-    const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
     if(!currentUser || (currentUser.role !== 'member' && currentUser.role !== 'administrative' && currentUser.role !== 'admin')) return;
 
     const container = document.getElementById('ccaaTasks');
     const acceptedContainer = document.getElementById('myAssignedTasks');
 
     try {
-        const res = await fetch(`https://backend-88na.onrender.com/api/allocations/member/${currentUser.id}?_nocache=${Date.now()}`);
-        const data = await res.json();
+        const data = await apiFetch(`/allocations/member/${currentUser.id}?_nocache=${Date.now()}`);
 
-        if(data.success) {
-            const pendingTasks = data.tasks.filter(t => t.status === 'notified' && (t.event_status === 'pending' || t.event_status === 'awaiting_initial_admin' || t.event_status === 'pending_admin'));
+        if(data && data.success) {
+            const pendingTasks = data.tasks
+                .filter(t => t.status === 'notified' && (t.event_status === 'pending' || t.event_status === 'awaiting_initial_admin' || t.event_status === 'pending_admin'))
+                .sort((a, b) => b.id - a.id); // ⚡ Sorts by ID descending so newest matches appear first
             
             const todayTs = new Date().setHours(0,0,0,0);
             
@@ -2031,7 +2058,9 @@ async function loadMemberOpportunities() {
 
             const memberServiceList = document.getElementById('memberServiceTasksList');
             if (memberServiceList) {
-                const assignedForService = data.tasks.filter(t => t.status === 'assigned');
+                const assignedForService = data.tasks
+                    .filter(t => t.status === 'assigned')
+                    .sort((a, b) => b.event_id - a.event_id); // ⚡ Sorts by newest Event ID first
                 if (assignedForService.length > 0) {
                     let serviceHtml = '';
                     assignedForService.forEach(t => {
@@ -2116,11 +2145,10 @@ async function loadMemberOpportunities() {
 
 async function loadRequesterData() {
     try {
-        const currentUser = JSON.parse(sessionStorage.getItem('dd_currentUser'));
+        const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
         
-        const response = await fetch(`https://backend-88na.onrender.com/api/events?_nocache=${Date.now()}`);
-        const data = await response.json();
-        if (data.success) {
+        const data = await apiFetch(`/events?_nocache=${Date.now()}`);
+        if (data && data.success) {
             window.cachedEvents = data.events;
             const myEvents = data.events.filter(ev => ev.requester_id === currentUser.id).sort((a, b) => b.id - a.id);
             
@@ -2225,3 +2253,103 @@ async function loadRequesterData() {
         if (calBody) calBody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding: 20px; color: var(--text3);'>Waking up server... (Please wait up to 30s)</td></tr>";
     }
 }
+/* ============================================================
+   MEMBER TASK ACCEPT/DECLINE ACTIONS
+============================================================ */
+async function acceptCcaaTask(allocationId) {
+    try {
+        const data = await apiFetch('/allocations/accept', {
+            method: 'POST', body: JSON.stringify({ allocationId })
+        });
+        
+        if (data && data.success) {
+            showToast('Task accepted successfully!', 'success');
+            
+            // Close the modal if it is open
+            const modal = document.getElementById('eventDetailsModal');
+            if (modal) modal.style.display = 'none';
+            
+            // Refresh the dashboard panels silently
+            if (typeof loadMemberOpportunities === 'function') loadMemberOpportunities();
+            if (typeof loadUserWorkload === 'function') loadUserWorkload();
+            if (typeof loadDashboardData === 'function') loadDashboardData();
+        } else {
+            showToast('Failed to accept task.', 'error');
+        }
+    } catch (e) {
+        showToast('Server connection error.', 'error');
+    }
+}
+
+async function declineCcaaTask(allocationId) {
+    if (!confirm("Are you sure you want to decline this coverage task?")) return;
+    
+    try {
+        const data = await apiFetch('/allocations/decline', {
+            method: 'POST', body: JSON.stringify({ allocationId })
+        });
+        
+        if (data && data.success) {
+            showToast('Task declined.', 'info');
+            
+            // Close the modal if it is open
+            const modal = document.getElementById('eventDetailsModal');
+            if (modal) modal.style.display = 'none';
+            
+            // Refresh the dashboard panels
+            if (typeof loadMemberOpportunities === 'function') loadMemberOpportunities();
+        } else {
+            showToast('Failed to decline task.', 'error');
+        }
+    } catch (e) {
+        showToast('Server connection error.', 'error');
+    }
+}
+/* ============================================================
+   SERVICE TASK TRACKING ACTIONS
+============================================================ */
+// Controls showing/hiding the Date picker when "Completed" is selected
+window.togglePostingDate = function(selectEl) {
+    const container = selectEl.parentElement.querySelector('.posting-date-container');
+    if (container) {
+        container.style.display = selectEl.value === 'completed' ? 'flex' : 'none';
+    }
+};
+
+// Sends the update securely to the backend
+window.updateServiceStatus = async function(eventId) {
+    const statusEl = document.getElementById(`svc_status_${eventId}`);
+    const dateEl = document.getElementById(`svc_date_${eventId}`);
+    
+    if (!statusEl.value) {
+        return showToast('Please select a status to save.', 'warning');
+    }
+    
+    let payload = {
+        eventId: eventId,
+        serviceStatus: statusEl.value,
+        postingDate: statusEl.value === 'completed' ? dateEl.value : null
+    };
+    
+    if (payload.serviceStatus === 'completed' && !payload.postingDate) {
+        return showToast('Please select a posting date for completed tasks.', 'warning');
+    }
+
+    try {
+        // Uses your secure token wrapper to hit the live-tracking endpoint
+        const data = await apiFetch('/events/live-tracking-update', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        
+        if (data && data.success) {
+            showToast('Tracking status updated!', 'success');
+            // Refresh the list instantly to show the new badge
+            if (typeof loadMemberOpportunities === 'function') loadMemberOpportunities();
+        } else {
+            showToast('Failed to update tracking status.', 'error');
+        }
+    } catch (e) {
+        showToast('Server connection error.', 'error');
+    }
+};
