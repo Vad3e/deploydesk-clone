@@ -633,7 +633,125 @@ function renderMemberWorkload() {
   
   body.innerHTML = htmlString;
 }
+
 </script>
+</script>
+
+<script id="PATCH_ADMIN_DELETION">
+ /* window.addEventListener('DOMContentLoaded', () => {
+      
+      // 1. Fetch and render the members with Admin Deletion enabled
+      window.loadAllSystemMembers = async function() {
+          const tbody = document.getElementById('adminMembersBody');
+          if (!tbody) return;
+
+          try {
+              const data = await apiFetch('/users'); // Fetch all users from your DB
+              if (data && data.success) {
+                  window.globalSystemUsers = data.users || data.data || [];
+                  renderCustomMembersTable(window.globalSystemUsers);
+              }
+          } catch(e) {
+              console.error("Error loading members:", e);
+              tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">Failed to load users from database.</td></tr>';
+          }
+      };
+
+      // 2. Build the table HTML dynamically
+      window.renderCustomMembersTable = function(users) {
+          const tbody = document.getElementById('adminMembersBody');
+          const currentUser = JSON.parse(localStorage.getItem('dd_currentUser') || '{}');
+          
+          if (!users || users.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">No users found in database.</td></tr>';
+              return;
+          }
+
+          let html = '';
+          users.forEach(u => {
+              // Styling the role badges
+              let roleColor = u.role === 'admin' ? '#cce5ff' : (u.role === 'member' ? '#d4edda' : '#e2e3e5');
+              let roleText = u.role === 'admin' ? '#004085' : (u.role === 'member' ? '#155724' : '#383d41');
+              let roleLabel = u.role ? u.role.toUpperCase() : 'USER';
+              
+              // ⚡ THE FIX: Allow deleting Admins, but prevent the current user from deleting themselves
+              let actionHtml = '';
+              if (u.id === currentUser.id) {
+                  actionHtml = '<span style="font-size:11px; color:#888; font-style:italic; font-weight:bold;">You (Current User)</span>';
+              } else {
+                  // Button is available for everyone else, including Admins
+                  actionHtml = `<button class="btn btn-sm" style="background:#dc3545; color:white; border:none; padding: 6px 12px; cursor: pointer; border-radius: 6px;" onmouseover="this.style.background='#c82333'" onmouseout="this.style.background='#dc3545'" onclick="removeSystemUser(${u.id}, '${u.full_name || u.name}', '${u.role}')">🗑️ Remove</button>`;
+              }
+
+              html += `
+              <tr style="border-bottom: 1px solid var(--border); transition: background 0.2s;" onmouseover="this.style.backgroundColor='#f9f9f9'" onmouseout="this.style.backgroundColor='transparent'">
+                  <td style="padding: 14px 12px; font-weight:600; color:var(--text1);">${u.full_name || u.name || 'Unknown User'}</td>
+                  <td style="padding: 14px 12px;">${u.email}<br><span style="font-size:11px; color:var(--text3);">${u.contact || ''}</span></td>
+                  <td style="padding: 14px 12px;"><span style="background:${roleColor}; color:${roleText}; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:bold;">${roleLabel}</span><br><span style="font-size:11px; color:var(--text3); display:inline-block; margin-top:4px;">${u.position || ''}</span></td>
+                  <td style="padding: 14px 12px; font-size:12px; color:var(--text2);">${new Date(u.created_at || Date.now()).toLocaleDateString()}</td>
+                  <td style="padding: 14px 12px;">${actionHtml}</td>
+              </tr>`;
+          });
+          tbody.innerHTML = html;
+      };
+
+      // 3. Ensure the search bar still works with our custom table
+      window.filterAdminMembers = function() {
+          const query = (document.getElementById('memberSearchInput').value || '').toLowerCase();
+          if (!window.globalSystemUsers) return;
+          
+          const filtered = window.globalSystemUsers.filter(u => {
+              const name = (u.full_name || u.name || '').toLowerCase();
+              const email = (u.email || '').toLowerCase();
+              return name.includes(query) || email.includes(query);
+          });
+          renderCustomMembersTable(filtered);
+      };
+
+      // 4. The actual deletion logic communicating with your backend
+      window.removeSystemUser = async function(userId, userName, role) {
+          
+          // Custom Warning specifically for Admins
+          let msg = `Are you sure you want to permanently remove ${userName} from the system?`;
+          if (role === 'admin' || role === 'administrative') {
+              msg = `⚠️ CRITICAL WARNING: You are about to delete an ADMINISTRATOR (${userName}).\n\nThey will lose all access to the DeployDesk system immediately. Do you wish to proceed?`;
+          }
+          
+          if (!confirm(msg)) return;
+
+          try {
+              // Calls the same /users/remove route you use on the profile page
+              const data = await apiFetch('/users/remove', {
+                  method: 'POST',
+                  body: JSON.stringify({ userId: userId })
+              });
+
+              if (data && data.success) {
+                  alert(`${userName} has been successfully removed.`);
+                  window.loadAllSystemMembers(); // Instantly refresh the table
+              } else {
+                  alert(data.message || 'Failed to remove user.');
+              }
+          } catch(e) {
+              console.error(e);
+              alert('Server error while attempting to remove user.');
+          }
+      };
+
+      // 5. Hijack the tab click to ensure our custom table loads every time
+      const originalGoSub = window.goSub;
+      window.goSub = function(tabId) {
+          if (originalGoSub) originalGoSub(tabId);
+          if (tabId === 'members') {
+              window.loadAllSystemMembers();
+          }
+      };
+
+      // Initial load in case they refresh while on the members tab
+      if (document.getElementById('sp-members').classList.contains('active')) {
+          window.loadAllSystemMembers();
+      }
+  });*/
 </script>
 </body>
 </html>
