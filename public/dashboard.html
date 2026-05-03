@@ -20,7 +20,7 @@
     .status { padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
     .s-pending { background: #fff3cd; color: #856404; border: 1px solid #ffeeba; }
 
-    /* ⚡ NEW: Service Tracking Cards CSS */
+    /* Service Tracking Cards CSS */
     .service-card { background: #fff; border: 1.5px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; transition: all 0.2s; }
     .service-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); border-color: var(--green); }
     .service-card-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px; }
@@ -261,10 +261,13 @@
               <div>
                 <div class="card-title">My Weekly Availability</div>
                 <div style="font-size:12px; color:var(--text3); margin-top:4px;">
-                  Click and drag to mark the times you are <strong>BUSY</strong>. The system uses this to send you incoming requests!
+                  Click and drag to mark the times you are <strong>BUSY</strong>. 
                 </div>
               </div>
-              <button class="btn" style="padding: 10px 20px; background: var(--green); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;" onclick="saveMySchedule()">Save Schedule</button>
+              
+              <!-- ⚡ The Save Button is Back -->
+              <button class="btn" style="padding: 10px 20px; background: #32ac54; color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 10px rgba(27,163,84,0.2);" onmouseover="this.style.background='#1e9148'" onmouseout="this.style.background='#32ac54'" onclick="saveMySchedule()">Save Schedule</button>
+              
             </div>
             <div style="overflow-x:auto;">
               <table class="isched">
@@ -321,12 +324,364 @@
     </div>
   </div>
   
-
   <div class="toast-wrap" id="toastWrap"></div>
   <script src="app.js"></script>
 </body>
+
+
 <script id="PATCH_SCRIPT">
-// ── Show/Hide Posting Date ──────────────────────────────────────────
+// ============================================================================
+// 1. SERVICE TASK PAGINATION
+// ============================================================================
+window.currentServicePage = 1;
+window.assignedServiceTasks = [];
+
+window.changeServicePage = function(direction) {
+    window.currentServicePage += direction;
+    renderServiceTasksPage();
+};
+
+window.renderServiceTasksPage = function() {
+    const memberServiceList = document.getElementById('memberServiceTasksList');
+    if (!memberServiceList) return;
+
+    const tasks = window.assignedServiceTasks || [];
+    const itemsPerPage = 5;
+    const totalPages = Math.ceil(tasks.length / itemsPerPage) || 1;
+
+    // Boundary limits
+    if (window.currentServicePage > totalPages) window.currentServicePage = totalPages;
+    if (window.currentServicePage < 1) window.currentServicePage = 1;
+
+    // Slice array for current page
+    const startIndex = (window.currentServicePage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const pageTasks = tasks.slice(startIndex, endIndex);
+
+    if (pageTasks.length > 0) {
+        let serviceHtml = '';
+        pageTasks.forEach(t => {
+            const realEvent = window.cachedEvents ? window.cachedEvents.find(ev => ev.id === t.event_id) : null;
+            
+            const rawStat = t.service_status || (realEvent ? realEvent.service_status : null) || '';
+            const currentStat = rawStat.toString().trim().toLowerCase();
+            
+            const rawDate = t.posting_date || (realEvent ? realEvent.posting_date : null);
+            const currentDate = rawDate ? new Date(rawDate).toISOString().split('T')[0] : '';
+            
+            let badgeColor = '#f4f4f4', badgeText = '#888', badgeLabel = 'AWAITING STATUS';
+            if (currentStat === 'upcoming') { badgeColor = '#ffe6cc'; badgeText = '#cc6600'; badgeLabel = 'Upcoming'; }
+            else if (currentStat === 'pending') { badgeColor = '#fff3cd'; badgeText = '#856404'; badgeLabel = 'Pending'; }
+            else if (currentStat === 'ongoing') { badgeColor = '#e2f0ff'; badgeText = '#0066cc'; badgeLabel = 'Ongoing'; }
+            else if (currentStat === 'completed') { 
+                badgeColor = '#d4edda'; badgeText = '#155724'; 
+                const pDate = rawDate ? new Date(rawDate).toLocaleDateString() : 'TBD';
+                badgeLabel = `Completed - To be posted on ${pDate}`; 
+            }
+            
+            serviceHtml += `
+            <div class="service-card" style="background: #fff; border: 1.5px solid #e0e0e0; border-radius: 12px; padding: 20px; margin-bottom: 16px;">
+              <div class="service-card-header" style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                <div>
+                  <h3 class="service-card-title" style="margin:0; font-size:16px;">${t.title}</h3>
+                  <div style="font-size: 12px; color: #555555; margin-top: 4px;">Role: ${t.required_role}</div>
+                </div>
+                <span class="status-badge" style="background: ${badgeColor}; color: ${badgeText}; font-weight: bold; padding: 4px 10px; border-radius: 99px; font-size: 11px; text-transform: uppercase;">${badgeLabel}</span>
+              </div>
+              
+              <div class="service-card-meta" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div class="service-meta-item">
+                  <div class="service-meta-label" style="font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase;">Event Date & Time</div>
+                  <div class="service-meta-value" style="font-size: 14px; color: #111; font-weight: 600;">${new Date(t.event_date).toLocaleDateString()} • ${t.start_time}</div>
+                </div>
+                <div class="service-meta-item">
+                  <div class="service-meta-label" style="font-size: 11px; font-weight: 700; color: #555; text-transform: uppercase;">Venue</div>
+                  <div class="service-meta-value" style="font-size: 14px; color: #111; font-weight: 600;">${t.venue}</div>
+                </div>
+              </div>
+
+              <div style="margin-top: 20px; padding-top: 16px; border-top: 1px dashed #e0e0e0;">
+                <div class="service-meta-label" style="margin-bottom: 12px; color: #1BA354; font-weight: bold; font-size: 12px; text-transform: uppercase;">Update Progress Status</div>
+                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                  
+                  <select id="svc_status_${t.event_id}" class="form-input" style="width: auto; min-height: 40px; padding: 8px 14px; font-size: 13px; border: 1px solid #e0e0e0; border-radius: 8px;" onchange="togglePostingDate(this)">
+                    <option value="" ${!currentStat ? 'selected' : ''} disabled>-- Select Status --</option>
+                    <option value="upcoming" ${currentStat === 'upcoming' ? 'selected' : ''}>Upcoming</option>
+                    <option value="pending" ${currentStat === 'pending' ? 'selected' : ''}>Pending</option>
+                    <option value="ongoing" ${currentStat === 'ongoing' ? 'selected' : ''}>Ongoing</option>
+                    <option value="completed" ${currentStat === 'completed' ? 'selected' : ''}>Completed</option>
+                  </select>
+                  
+                  <div class="posting-date-container" style="display: ${currentStat === 'completed' ? 'flex' : 'none'}; align-items: center; gap: 8px;">
+                      <span style="font-size: 12px; color: #555; font-weight: 700; text-transform: uppercase;">Posting Date:</span>
+                      <input type="date" id="svc_date_${t.event_id}" value="${currentDate}" class="form-input" style="width: auto; min-height: 40px; padding: 8px 14px; font-size: 13px; border: 1px solid #e0e0e0; border-radius: 8px;">
+                  </div>
+
+                  <button style="padding: 10px 18px; background-color: #1BA354; color: #ffffff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(27,163,84,0.2);" onclick="updateServiceStatus(${t.event_id})">Save Update</button>
+                </div>
+              </div>
+            </div>`;
+        });
+
+        // Pagination buttons
+        serviceHtml += `
+        <div style="display:flex; justify-content:center; align-items:center; gap: 16px; margin-top: 24px; padding-top: 16px; border-top: 1px dashed var(--border);">
+            <button class="btn btn-outline" style="padding: 8px 16px; font-size:13px; background:transparent; border:1px solid var(--border); color:var(--text1); cursor: ${window.currentServicePage <= 1 ? 'not-allowed' : 'pointer'}; opacity: ${window.currentServicePage <= 1 ? '0.4' : '1'};" ${window.currentServicePage <= 1 ? 'disabled' : ''} onclick="changeServicePage(-1)">◀ Previous</button>
+            <span style="font-size:13px; font-weight:700; color:var(--text2);">Page ${window.currentServicePage} of ${totalPages}</span>
+            <button class="btn btn-outline" style="padding: 8px 16px; font-size:13px; background:transparent; border:1px solid var(--border); color:var(--text1); cursor: ${window.currentServicePage >= totalPages ? 'not-allowed' : 'pointer'}; opacity: ${window.currentServicePage >= totalPages ? '0.4' : '1'};" ${window.currentServicePage >= totalPages ? 'disabled' : ''} onclick="changeServicePage(1)">Next ▶</button>
+        </div>`;
+
+        memberServiceList.innerHTML = serviceHtml;
+    } else {
+        memberServiceList.innerHTML = `
+          <div style="text-align:center; padding: 40px 20px; color: var(--text3);">
+            <div style="font-size: 48px; margin-bottom: 12px;">✅</div>
+            <div style="font-size: 14px;">You have no active service tasks to update.</div>
+          </div>`;
+    }
+};
+
+// ============================================================================
+// 2. BULLETPROOF SCHEDULE SAVE & LOAD
+// ============================================================================
+window.saveMySchedule = async function() {
+    const btn = document.querySelector('button[onclick="saveMySchedule()"]');
+    if (btn) btn.innerText = '⏳ Saving...';
+    
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
+    if(!currentUser) return;
+
+    window.mySchedule = {}; 
+    let arrSchedule = [];
+    
+    document.querySelectorAll('.isched-cell.busy').forEach(cell => {
+        const day = cell.getAttribute('data-day');
+        const hour = cell.getAttribute('data-hour');
+        window.mySchedule[`${day}-${hour}`] = true;
+        
+        // Let's ensure the array format is exactly what the backend wants
+        arrSchedule.push({ 
+            day_of_week: parseInt(day), 
+            hour_of_day: parseInt(hour),
+            day: parseInt(day),
+            hour: parseInt(hour)
+        });
+    });
+
+    const payload = { 
+        userId: currentUser.id, 
+        schedule: window.mySchedule,
+        schedule_array: arrSchedule,
+        schedule_str: JSON.stringify(window.mySchedule) 
+    };
+    
+    // 🔍 Tracker 1: See exactly what we are sending to the server
+    console.log("📤 [DEBUG] Sending this payload to server:", payload);
+
+    try {
+        const data = await apiFetch('/schedule', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        
+        // 🔍 Tracker 2: See what the server says after we hit save
+        console.log("📥 [DEBUG] Server response after save:", data);
+        
+        if(data && data.success) {
+            showToast('Schedule saved successfully!', 'success');
+            if (btn) btn.innerText = '✅ Saved!';
+            setTimeout(() => { if (btn) btn.innerText = 'Save Schedule'; }, 2000);
+        } else {
+            showToast('Failed to save schedule', 'error');
+            if (btn) btn.innerText = 'Save Schedule';
+        }
+    } catch(e) { 
+        console.error("Save Error:", e);
+        showToast('Server error', 'error'); 
+        if (btn) btn.innerText = 'Save Schedule';
+    }
+};
+
+window.loadSavedSchedule = async function() {
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
+    if(!currentUser) return;
+    
+    try {
+        const data = await apiFetch(`/schedule/${currentUser.id}?_nocache=${Date.now()}`);
+        
+        // 🔍 Tracker 3: See exactly what the server sends back when we log in
+        console.log("📥 [DEBUG] Raw Schedule Data from Server on load:", data);
+        
+        if(data && data.success) {
+            window.mySchedule = {};
+            
+            let source = data.schedule || data.schedules || data.schedule_str || data.data;
+            console.log("🔍 [DEBUG] Extracted schedule source to parse:", source);
+
+            if (!source) {
+                console.warn("⚠️ No schedule data was found in the server response.");
+                return;
+            }
+
+            if (typeof source === 'string') {
+                try { source = JSON.parse(source); } catch(e) { console.warn("Failed to parse string JSON"); }
+            }
+            
+            if (Array.isArray(source)) {
+                source.forEach(row => {
+                    const d = row.day_of_week !== undefined ? row.day_of_week : row.day;
+                    const h = row.hour_of_day !== undefined ? row.hour_of_day : row.hour;
+                    if (d !== undefined && h !== undefined) window.mySchedule[`${d}-${h}`] = true;
+                });
+            } else if (typeof source === 'object') {
+                Object.keys(source).forEach(key => {
+                    if (source[key] === true || source[key] === 'true' || source[key] === 1) {
+                        window.mySchedule[key] = true;
+                    }
+                });
+            }
+
+            console.log("✅ [DEBUG] Final parsed window.mySchedule applied to UI:", window.mySchedule);
+            
+            // Clear the grid first
+            document.querySelectorAll('.isched-cell').forEach(c => c.classList.remove('busy'));
+
+            // Paint the cells based on parsed data
+            document.querySelectorAll('.isched-cell').forEach(cell => {
+                const day = cell.getAttribute('data-day');
+                const hour = cell.getAttribute('data-hour');
+                
+                if (window.mySchedule[`${day}-${hour}`]) {
+                    cell.classList.add('busy');
+                }
+            });
+        }
+    } catch(e) {
+        console.error("Schedule load error:", e);
+    }
+};
+// ============================================================================
+// 3. OVERRIDE: LOAD MEMBER OPPORTUNITIES (To bypass app.js)
+// ============================================================================
+window.loadMemberOpportunities = async function() {
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
+    if(!currentUser || (currentUser.role !== 'member' && currentUser.role !== 'administrative' && currentUser.role !== 'admin')) return;
+
+    const container = document.getElementById('ccaaTasks');
+    const acceptedContainer = document.getElementById('myAssignedTasks');
+    const memberServiceList = document.getElementById('memberServiceTasksList');
+
+    try {
+        const data = await apiFetch(`/allocations/member/${currentUser.id}?_nocache=${Date.now()}`);
+
+        if(data && data.success) {
+            const pendingTasks = data.tasks
+                .filter(t => t.status === 'notified' && (t.event_status === 'pending' || t.event_status === 'awaiting_initial_admin' || t.event_status === 'pending_admin'))
+                .sort((a, b) => b.id - a.id); 
+            
+            const todayTs = new Date().setHours(0,0,0,0);
+            
+            const acceptedTasks = data.tasks.filter(t => {
+                const taskDateTs = new Date(t.event_date).setHours(0,0,0,0);
+                if (taskDateTs < todayTs) return false;
+                if (t.event_status === 'approved') return t.status === 'assigned';
+                if (t.event_status === 'rejected') return false; 
+                if (t.event_status === 'pending_admin' || t.event_status === 'awaiting_initial_admin') return t.status === 'rostered' || t.status === 'assigned';
+                return t.status === 'accepted' || t.status === 'assigned' || t.status === 'rostered';
+            });
+
+            window.MEMBER_WORKLOAD.role = currentUser.position || currentUser.role.toUpperCase();
+            window.MEMBER_WORKLOAD.max = (window.algoRules && window.algoRules.maxWorkload) ? window.algoRules.maxWorkload : 10;
+            
+            const activeForWorkload = data.tasks.filter(t => {
+                const taskDateTs = new Date(t.event_date).setHours(0,0,0,0);
+                return taskDateTs >= todayTs && (t.status === 'assigned' || t.status === 'accepted');
+            });
+            
+            window.MEMBER_WORKLOAD.current = activeForWorkload.length;
+            window.MEMBER_WORKLOAD.tasks = activeForWorkload.map(t => {
+                const d = new Date(t.event_date);
+                return {
+                    name: `Coverage: ${t.required_role || 'Member'}`,
+                    event: t.title,
+                    dueDate: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                    dueTs: d.getTime()
+                };
+            });
+            
+            if (typeof renderMemberWorkload === 'function') renderMemberWorkload();
+            if(document.getElementById('statMyPending')) document.getElementById('statMyPending').textContent = pendingTasks.length;
+
+            if(container) {
+                if(pendingTasks.length > 0) {
+                    let html = '';
+                    pendingTasks.forEach(t => {
+                        html += `
+                        <div onclick="viewEventDetails(${t.event_id})" style="background:#fff; border:2px dashed var(--green); padding:20px; border-radius:12px; margin-bottom:16px; position:relative; overflow:hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.03); cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='var(--green-dark)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--green)'; this.style.transform='translateY(0)'">
+                            <div style="position:absolute; top:0; left:0; width:6px; height:100%; background:var(--green);"></div>
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap: wrap; gap: 16px;">
+                                <div>
+                                    <div style="font-size:11px; font-weight:800; color:var(--green); text-transform:uppercase; margin-bottom:6px;">New Coverage Match</div>
+                                    <strong style="color:var(--text1); font-size: 18px; font-family: 'Syne', sans-serif;">${t.title}</strong>
+                                    <div style="margin-top:10px; font-size:13px; color:var(--text2); display:flex; flex-direction:column; gap:6px;">
+                                        <span style="display: flex; align-items: center; gap: 8px;"><b>Date:</b> ${new Date(t.event_date).toLocaleDateString()} @ ${t.start_time}</span>
+                                        <span style="display: flex; align-items: center; gap: 8px;"><b>Venue:</b> ${t.venue}</span>
+                                        <span style="display: flex; align-items: center; gap: 8px; margin-top: 4px;"><b>Requested Role:</b> <span style="background: rgba(27,163,84,0.1); color: var(--green-dark); padding: 2px 8px; border-radius: 4px; font-weight: 700; font-size: 11px;">${t.required_role}</span></span>
+                                    </div>
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap: 8px; min-width: 140px;">
+                                    <button class="btn btn-primary" style="padding:12px; width:100%; justify-content:center; font-size:13px;" onclick="event.stopPropagation(); acceptCcaaTask(${t.id})">✅ Accept Task</button>
+                                    <button class="btn" style="background:transparent; border:1.5px solid #d02020; color:#d02020; padding:12px; width:100%; justify-content:center; font-size:13px;" onclick="event.stopPropagation(); declineCcaaTask(${t.id})">❌ Decline</button>
+                                </div>
+                            </div>
+                        </div>`;
+                    });
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = "<div style='background: #fff; border: 1px dashed var(--border); border-radius: 12px; padding: 30px; text-align: center; color: var(--text3);'><div>No new requests at the moment. You're all caught up!</div></div>";
+                }
+            }
+
+            if(acceptedContainer) {
+                if(acceptedTasks.length > 0) {
+                    let html = '';
+                    acceptedTasks.forEach(t => {
+                        let badge = t.status === 'assigned' ? 
+                            '<span style="background:#cce5ff; color:#004085; padding:4px 8px; border-radius:99px; font-size:10px; font-weight:bold;">✅ OFFICIALLY ASSIGNED</span>' : 
+                            '<span style="background:#ffeeba; color:#856404; padding:4px 8px; border-radius:99px; font-size:10px; font-weight:bold;">⏳ AWAITING ADMIN</span>';
+                        
+                        html += `
+                        <div onclick="viewEventDetails(${t.event_id})" style="background:#fff; border:1px solid var(--border); padding:16px; border-radius:8px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.borderColor='var(--green)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='var(--border)'; this.style.transform='translateY(0)'">
+                            <div>
+                                <strong style="color:var(--text1); font-size: 15px;">${t.title}</strong><br>
+                                <span style="font-size:12px; color:var(--text3);">${new Date(t.event_date).toLocaleDateString()} @ ${t.start_time} • ${t.venue}</span><br>
+                                <span style="font-size:12px; font-weight:700; color:var(--accent); display:inline-block; margin-top:4px;">My Role: ${t.required_role}</span>
+                            </div>
+                            <div>${badge}</div>
+                        </div>`;
+                    });
+                    acceptedContainer.innerHTML = html;
+                } else acceptedContainer.innerHTML = "<div style='padding:20px; text-align:center; color:var(--text3); font-size:14px;'>You haven't accepted any tasks yet.</div>";
+            }
+
+            if (memberServiceList) {
+                window.assignedServiceTasks = data.tasks
+                    .filter(t => t.status === 'assigned')
+                    .sort((a, b) => b.event_id - a.event_id);
+                renderServiceTasksPage();
+            }
+
+        }
+    } catch(e) {
+        console.error(e);
+        if(container) container.innerHTML = "<div style='background:#fff; border:1px dashed var(--border); border-radius:12px; padding:30px; text-align:center; color:var(--text3);'>Waking up server... (Please wait up to 30s)</div>";
+        if(acceptedContainer) acceptedContainer.innerHTML = "<div style='padding:20px; text-align:center; color:var(--text3); font-size:14px;'>Waking up server... (Please wait up to 30s)</div>";
+    }
+};
+
+// ============================================================================
+// 4. HELPER FUNCTIONS
+// ============================================================================
 function togglePostingDate(selectElement) {
     const container = selectElement.parentElement.querySelector('.posting-date-container');
     if (selectElement.value === 'completed') {
@@ -336,7 +691,6 @@ function togglePostingDate(selectElement) {
     }
 }
 
-// ── Bar color based on days left ──────────────────────────────────────────
 function barColor(days) {
   if (days <= 3)  return "#e74c3c";
   if (days <= 7)  return "#e67e22";
@@ -344,7 +698,6 @@ function barColor(days) {
   return "#1ba354";
 }
  
-// ── Render Column 1 ───────────────────────────────────────────────────────
 function renderUpcomingEvents() {
   const sort   = document.getElementById("evtSort")?.value   || "proximity";
   const filter = document.getElementById("evtFilter")?.value || "all";
@@ -375,7 +728,6 @@ function renderUpcomingEvents() {
   `).join("");
 }
  
-// ── Render Column 2 ───────────────────────────────────────────────────────
 function renderApprovedRequests() {
   const sort   = document.getElementById("reqSort")?.value   || "newest";
   const search = (document.getElementById("reqSearch")?.value || "").toLowerCase();
@@ -405,7 +757,6 @@ function renderApprovedRequests() {
   `).join("");
 }
  
-// ── Render Column 3 ───────────────────────────────────────────────────────
 function renderMemberWorkload() {
   const filterMode = document.getElementById("taskFilter")?.value || "all";
   const sortMode   = document.getElementById("taskSort")?.value   || "due";
@@ -446,6 +797,7 @@ function renderMemberWorkload() {
     `).join("") : '<div style="text-align:center;color:#bbb;padding:12px;font-size:13px;">No tasks match filter.</div>'}
   `;
 }
+
 </script>
 <style id="PATCH_STYLES">
   .sb-main {

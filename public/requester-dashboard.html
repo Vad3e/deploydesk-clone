@@ -68,21 +68,8 @@
     .time-range-input { width: 100%; min-height: 52px; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 8px; background: #fff; display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; transition: border-color .2s, box-shadow .2s; }
     .time-range-input:hover, .time-range-input:focus { border-color: var(--green); box-shadow: 0 0 0 4px rgba(27,163,84,0.08); }
     .time-range-input span { font-size: 14px; color: var(--text2); }
-    .time-range-input .time-range-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 16px;
-      height: 16px;
-      margin-left: 10px;
-      color: #000;
-      flex-shrink: 0;
-    }
-    .time-range-input .time-range-icon svg {
-      width: 17px;
-      height: 17px;
-      display: block;
-    }
+    .time-range-input .time-range-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 10px; color: #000; flex-shrink: 0; }
+    .time-range-input .time-range-icon svg { width: 17px; height: 17px; display: block; }
     .time-range-panel { position: absolute; z-index: 999; top: 100%; left: 0; right: 0; background:#fff; border:1px solid var(--border); border-radius: 14px; padding: 16px; margin-top: 8px; box-shadow: 0 16px 40px rgba(0,0,0,0.12); display:none; max-height: 340px; overflow: hidden; }
     .time-range-panel.open { display: block; }
     .time-range-panel-header { font-weight:700; margin-bottom:12px; color: var(--text1); }
@@ -168,6 +155,7 @@
       <div class="card">
         <div class="card-title">Submit Event Request Ticket</div>
         
+        <!-- 1. Event Title & Type -->
         <div class="form-row">
           <div class="form-group"><label class="form-label">Event Title *</label><input type="text" id="rTitle" class="form-input" placeholder="e.g. Org General Assembly"></div>
           
@@ -184,15 +172,13 @@
           </div>
         </div>
 
-        <div class="form-group" style="background: #fafafa; padding: 18px; border-radius: 10px; border: 1px solid var(--border);">
-          <label class="form-label" style="color:var(--green); margin-bottom: 12px; font-size:12px;">Members Required *</label>
-          <div id="dynamicRolesContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
-        </div>
-
-        <div class="form-group"><label class="form-label">Description / Purpose *</label><textarea id="rDesc" class="form-input" rows="3" placeholder="Briefly describe the event details and what you need the coverage team to do..."></textarea></div>
-        
+        <!-- 2. Date & Time Range -->
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Date *</label><input type="date" id="rDate" class="form-input"></div>
+          <div class="form-group">
+            <label class="form-label">Date *</label>
+            <input type="date" id="rDate" class="form-input">
+          </div>
+          
           <div class="form-group">
             <label class="form-label">Time Range (7AM - 5PM) *</label>
             <div id="timeRangePicker" class="time-range-input" onclick="toggleTimeRangePanel(event)" tabindex="0" role="button" aria-haspopup="true">
@@ -204,6 +190,8 @@
                 </svg>
               </span>
             </div>
+            
+            <!-- Time Picker Dropdown -->
             <div id="timeRangePanel" class="time-range-panel" onclick="event.stopPropagation()">
               <div class="time-range-panel-header">Select Start and End Time</div>
               <div class="time-range-columns">
@@ -224,12 +212,56 @@
             <input type="hidden" id="rEndTime" name="rEndTime">
           </div>
         </div>
-        <div id="timeRangeDisplay" style="font-size:13px; color: var(--text3); margin-bottom:16px; min-height:20px;">&nbsp;</div>
+
+        <!-- 3. Venue -->
         <div class="form-group">
             <label class="form-label">Venue *</label>
-            <input type="text" id="rVenue" class="form-input" placeholder="e.g. Main Auditorium">
+            <input type="text" id="rVenue" class="form-input" placeholder="e.g. Main Auditorium, Library, etc.">
         </div>
 
+        <!-- 4. Coverage Teams Required -->
+        <div class="form-group" style="background: #fafafa; padding: 18px; border-radius: 10px; border: 1px solid var(--border); position: relative; overflow: hidden;">
+          
+          <!-- The Lock Overlay -->
+          <div id="roleLockOverlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(250,250,250,0.7); z-index: 10; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(3px); transition: 0.3s opacity;">
+              <div style="background: #fff; padding: 12px 24px; border-radius: 8px; border: 1px solid var(--border); color: var(--text2); font-size: 13px; font-weight: 600; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+                  <span id="roleLockText">Please select Date and Time first</span>
+              </div>
+          </div>
+
+          <label class="form-label" style="color:var(--green); margin-bottom: 12px; font-size:12px;">Coverage Teams Required *</label>
+
+          <!-- Master Organization Selector -->
+          <div style="margin-bottom: 20px;">
+              <label class="form-label" style="color:var(--text2); font-size:11px;">Select Organization(s) Needed</label>
+              <select id="reqOrgSelector" class="form-input" onchange="toggleOrgSections()">
+                  <option value="" disabled selected>-- Select Organization --</option>
+                  <option value="both">Both (IMAGE & Cognizant)</option>
+                  <option value="image">IMAGE Only</option>
+                  <option value="cognizant">Cognizant Only</option>
+              </select>
+          </div>
+
+          <!-- IMAGE Org Section -->
+          <div id="imageOrgWrapper" style="display: none; margin-bottom: 16px;">
+              <label class="form-label" style="color:var(--text2); font-size:11px;">IMAGE (Photography & Video Documentation)</label>
+              <div id="imageRolesContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+
+          <!-- Divider -->
+          <hr id="orgDivider" style="display: none; border: 0; border-top: 1px solid var(--border); margin: 16px 0;">
+
+          <!-- Cognizant Org Section -->
+          <div id="cognizantOrgWrapper" style="display: none;">
+              <label class="form-label" style="color:var(--text2); font-size:11px;">Cognizant (Writing & Media Broadcasting)</label>
+              <div id="cognizantRolesContainer" style="display: flex; flex-direction: column; gap: 8px;"></div>
+          </div>
+        </div>
+
+        <!-- 5. Description -->
+        <div class="form-group"><label class="form-label">Description / Purpose *</label><textarea id="rDesc" class="form-input" rows="3" placeholder="Briefly describe the event details and what you need the coverage team to do..."></textarea></div>
+
+        <!-- 6. Supporting Documents -->
         <div class="form-group" style="margin-top: 20px;">
           <label class="form-label">Supporting Documents (Optional)</label>
           <div class="upload-zone" onclick="document.getElementById('rFiles').click()">
@@ -241,6 +273,7 @@
           <div id="fileListDisplay" style="margin-top: 8px;"></div>
         </div>
 
+        <!-- Submit Button -->
         <button class="btn" style="width:100%; justify-content:center; padding:14px; font-size:15px; margin-top: 10px;" onclick="submitReq()">Submit Ticket for Approval</button>
       </div>
 
@@ -348,233 +381,350 @@
 
   <script src="app.js"></script>
   <script>
-    function switchReqTab(tabId, el) {
+    /* ── TABS & UI HELPERS ── */
+    window.switchReqTab = function(tabId, el) {
       document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('active-tab'));
       document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
       el.classList.add('active-tab');
       document.getElementById('tab-' + tabId).classList.add('active');
-    }
+    };
 
-    function toggleOtherEventType() {
-        const typeSelect = document.getElementById('rType');
-        const otherInput = document.getElementById('rTypeOther');
+    window.toggleOtherEventType = function() {
+        var typeSelect = document.getElementById('rType');
+        var otherInput = document.getElementById('rTypeOther');
         if (typeSelect.value === 'Other') {
             otherInput.style.display = 'block';
         } else {
             otherInput.style.display = 'none';
             otherInput.value = ''; 
         }
-    }
+    };
 
-    function updateFileList(input) {
-        const display = document.getElementById('fileListDisplay');
+    window.updateFileList = function(input) {
+        var display = document.getElementById('fileListDisplay');
         display.innerHTML = '';
         if (input.files.length > 0) {
-            Array.from(input.files).forEach(file => {
-                display.innerHTML += `<div class="file-chip">📎 ${file.name}</div>`;
+            Array.from(input.files).forEach(function(file) {
+                display.innerHTML += '<div class="file-chip">📎 ' + file.name + '</div>';
             });
         }
-    }
+    };
 
-    function getRoleOptionsHTML() {
-        let html = '<option value="" disabled selected>Select Role...</option>';
-        if (window.groupRoles) {
-            for (const group in window.groupRoles) {
-                html += `<optgroup label="${group}">`;
-                window.groupRoles[group].forEach(role => {
-                    html += `<option value="${group} - ${role}">${role}</option>`;
+    /* ── DYNAMIC AVAILABILITY & ROLE SELECTION ── */
+    window.roleAvailability = {};
+
+    document.getElementById('rDate').addEventListener('change', function() {
+        window.checkTimeBasedAvailability();
+    });
+
+    window.checkTimeBasedAvailability = async function() {
+        var date = document.getElementById('rDate').value;
+        var start = document.getElementById('rTime').value;
+        var end = document.getElementById('rEndTime').value;
+        var overlay = document.getElementById('roleLockOverlay');
+        var lockText = document.getElementById('roleLockText');
+
+        if (!date || !start || !end) {
+            if (overlay) overlay.style.opacity = '1';
+            if (overlay) overlay.style.pointerEvents = 'all';
+            if (lockText) lockText.innerHTML = '📅 Please select Date and Time first';
+            return;
+        }
+
+        if (overlay) overlay.style.opacity = '1';
+        if (overlay) overlay.style.pointerEvents = 'all';
+        if (lockText) lockText.innerHTML = '⏳ Calculating available members...';
+
+        try {
+            var res = await apiFetch(`/check-availability?date=${date}&start=${start}&end=${end}`);
+            
+            if (res && res.success) {
+                window.roleAvailability = res.counts; 
+                
+                if (overlay) overlay.style.opacity = '0';
+                setTimeout(function() { if (overlay) overlay.style.pointerEvents = 'none'; }, 300);
+
+                document.querySelectorAll('.role-select').forEach(function(select) {
+                    var prevValue = select.value;
+                    var orgName = select.innerHTML.includes('IMAGE') ? 'IMAGE' : 'Cognizant';
+                    select.innerHTML = window.getSpecificRoleOptionsHTML(orgName);
+                    
+                    if (prevValue && window.roleAvailability[prevValue] > 0) {
+                        select.value = prevValue;
+                    } else {
+                        select.value = "";
+                    }
+                    window.updateAvailability(select);
                 });
-                html += `</optgroup>`;
             }
+        } catch (e) {
+            if (lockText) lockText.innerHTML = '❌ Error loading availability.';
+        }
+    };
+
+    window.toggleOrgSections = function() {
+        var val = document.getElementById('reqOrgSelector').value;
+        var imgWrap = document.getElementById('imageOrgWrapper');
+        var cogWrap = document.getElementById('cognizantOrgWrapper');
+        var div = document.getElementById('orgDivider');
+
+        if (val === 'both') {
+            imgWrap.style.display = 'block'; cogWrap.style.display = 'block'; div.style.display = 'block';
+        } else if (val === 'image') {
+            imgWrap.style.display = 'block'; cogWrap.style.display = 'none'; div.style.display = 'none';
+        } else if (val === 'cognizant') {
+            imgWrap.style.display = 'none'; cogWrap.style.display = 'block'; div.style.display = 'none';
+        } else {
+            imgWrap.style.display = 'none'; cogWrap.style.display = 'none'; div.style.display = 'none';
+        }
+    };
+
+    window.getSpecificRoleOptionsHTML = function(orgName) {
+        var html = '<option value="" disabled selected>Select ' + orgName + ' Role...</option>';
+        if (window.groupRoles && window.groupRoles[orgName]) {
+            window.groupRoles[orgName].forEach(function(role) {
+                var fullRoleName = orgName + ' - ' + role;
+                var availableCount = window.roleAvailability[fullRoleName] || 0;
+                var disableAttr = availableCount === 0 ? 'disabled' : '';
+                html += '<option value="' + fullRoleName + '" ' + disableAttr + '>' + role + '</option>';
+            });
         }
         return html;
-    }
+    };
 
-    function addDynamicRow() {
-        const container = document.getElementById('dynamicRolesContainer');
-        const row = document.createElement('div');
-        row.className = 'dynamic-role-row';
+    window.updateAvailability = function(selectEl) {
+        var row = selectEl.closest('.dynamic-role-row');
+        var label = row.querySelector('.availability-label');
+        var numInput = row.querySelector('.count-input');
+        var selectedVal = selectEl.value;
+
+        if (selectedVal) {
+            var availableCount = window.roleAvailability[selectedVal] || 0;
+            label.textContent = 'of ' + availableCount + ' available';
+            
+            numInput.max = availableCount;
+            if (parseInt(numInput.value) > availableCount) {
+                numInput.value = availableCount;
+            }
+        } else {
+            label.textContent = "";
+        }
+    };
+
+    window.addSpecificOrgRow = function(orgName, containerId) {
+        var container = document.getElementById(containerId);
+        if (!container) return;
+        
+        var row = document.createElement('div');
+        row.className = 'dynamic-role-row specific-org-row';
         row.style.cssText = 'display: flex; gap: 10px; align-items: center; animation: fadeIn 0.2s ease;';
         
         row.innerHTML = `
-            <select class="form-input role-select" style="flex: 1;" onchange="checkDynamicRows()">
-                ${getRoleOptionsHTML()}
+            <select class="form-input role-select" style="flex: 1;" onchange="window.updateAvailability(this); window.checkSpecificRows('${orgName}', '${containerId}')">
+                ${window.getSpecificRoleOptionsHTML(orgName)}
             </select>
-            <input type="number" class="form-input count-input" style="width: 80px;" value="1" min="1" onchange="checkDynamicRows()">
-            <button type="button" class="btn" style="background:transparent; color:var(--text3); border:none; padding:8px; cursor:pointer; font-size:18px;" onclick="removeDynamicRow(this)" title="Remove Role">×</button>
+            <div style="display:flex; align-items:center; gap: 6px; width: 140px;">
+                <input type="number" class="form-input count-input" style="width: 55px; text-align:center; padding: 12px 6px;" value="1" min="1" onchange="window.checkSpecificRows('${orgName}', '${containerId}')">
+                <span class="availability-label" style="font-size:11px; font-weight:700; color:var(--text3); white-space:nowrap; overflow:hidden;"></span>
+            </div>
+            <button type="button" class="btn" style="background:transparent; color:var(--text3); border:none; padding:8px; cursor:pointer; font-size:18px;" onclick="window.removeSpecificRow(this, '${orgName}', '${containerId}')" title="Remove Role">×</button>
         `;
         container.appendChild(row);
-    }
+    };
 
-    function checkDynamicRows() {
-        const container = document.getElementById('dynamicRolesContainer');
-        const rows = container.querySelectorAll('.dynamic-role-row');
+    window.checkSpecificRows = function(orgName, containerId) {
+        var container = document.getElementById(containerId);
+        var rows = container.querySelectorAll('.dynamic-role-row');
         if (rows.length === 0) return;
-
-        const lastRow = rows[rows.length - 1];
-        const lastSelect = lastRow.querySelector('.role-select').value;
-        
-        if (lastSelect !== "") {
-            addDynamicRow();
+        var lastRow = rows[rows.length - 1];
+        if (lastRow.querySelector('.role-select').value !== "") {
+            window.addSpecificOrgRow(orgName, containerId);
         }
-    }
+    };
 
-    function removeDynamicRow(btn) {
-        const row = btn.closest('.dynamic-role-row');
-        const container = document.getElementById('dynamicRolesContainer');
+    window.removeSpecificRow = function(btn, orgName, containerId) {
+        var row = btn.closest('.dynamic-role-row');
+        var container = document.getElementById(containerId);
         
         if (container.querySelectorAll('.dynamic-role-row').length > 1) {
-            row.remove();
-            checkDynamicRows(); 
+            row.remove(); window.checkSpecificRows(orgName, containerId); 
         } else {
             row.querySelector('.role-select').value = "";
             row.querySelector('.count-input').value = "1";
+            window.updateAvailability(row.querySelector('.role-select'));
         }
-    }
+    };
 
-    const timeOptions = [
+    /* ── TIME SELECTION LOGIC (BULLETPROOF) ── */
+    window.timeOptionsList = [
       '07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30',
       '12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00'
     ];
 
-    function formatTimeLabel(value) {
-      const [hour, minute] = value.split(':').map(Number);
-      const suffix = hour >= 12 ? 'PM' : 'AM';
-      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
-      return `${displayHour}:${minute.toString().padStart(2,'0')} ${suffix}`;
-    }
+    window.formatTimeLabel = function(value) {
+        if (!value) return '';
+        var parts = value.split(':');
+        var hour = parseInt(parts[0], 10);
+        var minute = parts[1];
+        var suffix = hour >= 12 ? 'PM' : 'AM';
+        var displayHour = hour % 12;
+        if (displayHour === 0) displayHour = 12;
+        return displayHour + ':' + minute + ' ' + suffix;
+    };
 
-    function addMinutes(value, minutes) {
-      const [hour, minute] = value.split(':').map(Number);
-      const totalMinutes = hour * 60 + minute + minutes;
-      const newHour = Math.floor(totalMinutes / 60);
-      const newMinute = totalMinutes % 60;
-      return `${newHour.toString().padStart(2,'0')}:${newMinute.toString().padStart(2,'0')}`;
-    }
+    window.addMinutes = function(value, minutesToAdd) {
+        if (!value) return null;
+        var parts = value.split(':');
+        var hour = parseInt(parts[0], 10);
+        var minute = parseInt(parts[1], 10);
+        var totalMins = (hour * 60) + minute + minutesToAdd;
+        var newHour = Math.floor(totalMins / 60);
+        var newMinute = totalMins % 60;
+        var hStr = newHour < 10 ? '0' + newHour : '' + newHour;
+        var mStr = newMinute < 10 ? '0' + newMinute : '' + newMinute;
+        return hStr + ':' + mStr;
+    };
 
-    function renderTimeLists() {
-      const startList = document.getElementById('startTimeList');
-      const endList = document.getElementById('endTimeList');
-      const startValue = document.getElementById('rTime').value;
-      const endValue = document.getElementById('rEndTime').value;
-      const minEndTime = startValue ? addMinutes(startValue, 30) : null;
+    window.renderTimeLists = function() {
+        var startList = document.getElementById('startTimeList');
+        var endList = document.getElementById('endTimeList');
+        var startInput = document.getElementById('rTime');
+        var endInput = document.getElementById('rEndTime');
 
-      startList.innerHTML = '';
-      endList.innerHTML = '';
+        if (!startList || !endList || !startInput || !endInput) return;
 
-      timeOptions.forEach(time => {
-        const startOption = document.createElement('div');
-        const disabledStart = time === '17:00';
-        startOption.className = 'time-option' + (time === startValue ? ' selected' : '') + (disabledStart ? ' disabled' : '');
-        startOption.textContent = formatTimeLabel(time);
-        if (!disabledStart) {
-          startOption.onclick = () => selectStartTime(time);
+        var startValue = startInput.value;
+        var endValue = endInput.value;
+        var minEndTime = startValue ? window.addMinutes(startValue, 30) : null;
+
+        startList.innerHTML = '';
+        endList.innerHTML = '';
+
+        window.timeOptionsList.forEach(function(time) {
+            var startOption = document.createElement('div');
+            var disabledStart = (time === '17:00');
+            startOption.className = 'time-option';
+            if (time === startValue) startOption.className += ' selected';
+            if (disabledStart) startOption.className += ' disabled';
+            startOption.textContent = window.formatTimeLabel(time);
+            if (!disabledStart) {
+                startOption.onclick = function() { window.selectStartTime(time); };
+            }
+            startList.appendChild(startOption);
+
+            var endOption = document.createElement('div');
+            var disabledEnd = !minEndTime || time < minEndTime;
+            endOption.className = 'time-option';
+            if (time === endValue) endOption.className += ' selected';
+            if (disabledEnd) endOption.className += ' disabled';
+            endOption.textContent = window.formatTimeLabel(time);
+            if (!disabledEnd) {
+                endOption.onclick = function() { window.selectEndTime(time); };
+            }
+            endList.appendChild(endOption);
+        });
+    };
+
+    window.selectStartTime = function(value) {
+        document.getElementById('rTime').value = value;
+        var nextEnd = window.addMinutes(value, 30);
+        var endInput = document.getElementById('rEndTime');
+
+        if (!endInput.value || endInput.value <= value) {
+            endInput.value = nextEnd;
         }
-        startList.appendChild(startOption);
 
-        const endOption = document.createElement('div');
-        const disabled = !minEndTime || time < minEndTime;
-        endOption.className = 'time-option' + (time === endValue ? ' selected' : '') + (disabled ? ' disabled' : '');
-        endOption.textContent = formatTimeLabel(time);
-        if (!disabled) {
-          endOption.onclick = () => selectEndTime(time);
+        window.renderTimeLists();
+        window.updateTimeRangeDisplay();
+
+        if (typeof window.checkTimeBasedAvailability === 'function') {
+            window.checkTimeBasedAvailability();
         }
-        endList.appendChild(endOption);
-      });
-    }
+    };
 
-    function selectStartTime(value) {
-      const startInput = document.getElementById('rTime');
-      const endInput = document.getElementById('rEndTime');
-      startInput.value = value;
+    window.selectEndTime = function(value) {
+        document.getElementById('rEndTime').value = value;
+        
+        window.renderTimeLists();
+        window.updateTimeRangeDisplay();
 
-      const nextEnd = addMinutes(value, 30);
-      endInput.value = (endInput.value && endInput.value > value) ? endInput.value : nextEnd;
-      renderTimeLists();
-      updateTimeRangeDisplay();
-    }
+        if (typeof window.checkTimeBasedAvailability === 'function') {
+            window.checkTimeBasedAvailability();
+        }
+    };
 
-    function selectEndTime(value) {
-      const endInput = document.getElementById('rEndTime');
-      endInput.value = value;
-      updateTimeRangeDisplay();
-    }
+    window.updateTimeRangeDisplay = function() {
+        var start = document.getElementById('rTime').value;
+        var end = document.getElementById('rEndTime').value;
+        var text = document.getElementById('timeRangeText');
 
-    function updateTimeRangeDisplay() {
-      const start = document.getElementById('rTime').value;
-      const end = document.getElementById('rEndTime').value;
-      const display = document.getElementById('timeRangeDisplay');
-      const text = document.getElementById('timeRangeText');
+        if (start && end) {
+            text.textContent = window.formatTimeLabel(start) + ' to ' + window.formatTimeLabel(end);
+        } else if (start) {
+            text.textContent = window.formatTimeLabel(start) + ' to ...';
+        } else {
+            text.textContent = '--:-- --';
+        }
+    };
 
-      if (start && end) {
-        const label = `${formatTimeLabel(start)} to ${formatTimeLabel(end)}`;
-        display.textContent = label;
-        text.textContent = label;
-      } else if (start) {
-        display.textContent = 'Select an end time.';
-        text.textContent = `${formatTimeLabel(start)} to ...`;
-      } else {
-        display.textContent = '';
-        text.textContent = '--:-- --';
-      }
-    }
+    window.toggleTimeRangePanel = function(event) {
+        event.stopPropagation();
+        var picker = document.getElementById('timeRangePanel');
+        if (picker) picker.classList.toggle('open');
+    };
 
-    function toggleTimeRangePanel(event) {
-      event.stopPropagation();
-      const picker = document.getElementById('timeRangePanel');
-      picker.classList.toggle('open');
-    }
+    window.closeTimeRangePanel = function() {
+        var panel = document.getElementById('timeRangePanel');
+        if (panel) panel.classList.remove('open');
+    };
 
-    function closeTimeRangePanel() {
-      const panel = document.getElementById('timeRangePanel');
-      if (panel) panel.classList.remove('open');
-    }
-
-    document.addEventListener('click', (event) => {
-      const picker = document.getElementById('timeRangePicker');
-      const panel = document.getElementById('timeRangePanel');
-      if (picker && panel && !picker.contains(event.target) && !panel.contains(event.target)) {
-        closeTimeRangePanel();
-      }
+    document.addEventListener('click', function(event) {
+        var picker = document.getElementById('timeRangePicker');
+        var panel = document.getElementById('timeRangePanel');
+        if (picker && panel && !picker.contains(event.target) && !panel.contains(event.target)) {
+            window.closeTimeRangePanel();
+        }
     });
 
-    window.addEventListener('DOMContentLoaded', () => {
-        if(document.getElementById('dynamicRolesContainer')) {
-            addDynamicRow();
-        }
-        renderTimeLists();
-        updateTimeRangeDisplay();
-    });
-
-    function markAllAsRead() {
-        document.querySelectorAll('.notif-item.unread').forEach(item => {
+    /* ── NOTIFICATIONS & TICKETS FILTER ── */
+    window.markAllAsRead = function() {
+        document.querySelectorAll('.notif-item.unread').forEach(function(item) {
             item.classList.remove('unread');
         });
-        const badge = document.getElementById('notifBadge');
+        var badge = document.getElementById('notifBadge');
         if (badge) badge.style.display = 'none';
-    }
+    };
 
-    function markAllAsUnread() {
-        document.querySelectorAll('.notif-item').forEach(item => {
+    window.markAllAsUnread = function() {
+        document.querySelectorAll('.notif-item').forEach(function(item) {
             item.classList.add('unread');
         });
-        const badge = document.getElementById('notifBadge');
+        var badge = document.getElementById('notifBadge');
         if (badge) badge.style.display = 'inline-block';
-    }
+    };
 
-    function filterTickets(status) {
-        const rows = document.querySelectorAll('#myTicketsBody tr');
-        rows.forEach(row => {
+    window.filterTickets = function(status) {
+        var rows = document.querySelectorAll('#myTicketsBody tr');
+        rows.forEach(function(row) {
             if (row.cells.length < 4) return; 
-            const statusCell = row.cells[3]; 
-            const statusText = statusCell.textContent.toLowerCase().trim();
+            var statusCell = row.cells[3]; 
+            var statusText = statusCell.textContent.toLowerCase().trim();
             if (status === 'all' || statusText.includes(status)) {
                 row.style.display = '';
             } else {
                 row.style.display = 'none';
             }
         });
-    }
+    };
+
+    /* ── ON LOAD INIT ── */
+    window.addEventListener('DOMContentLoaded', function() {
+        if(document.getElementById('imageRolesContainer')) window.addSpecificOrgRow('IMAGE', 'imageRolesContainer');
+        if(document.getElementById('cognizantRolesContainer')) window.addSpecificOrgRow('Cognizant', 'cognizantRolesContainer');
+        
+        window.renderTimeLists();
+        window.updateTimeRangeDisplay();
+    });
   </script>
 </body>
 </html>

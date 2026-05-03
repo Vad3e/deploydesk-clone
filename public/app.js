@@ -10,39 +10,32 @@ const API_BASE = 'https://backend-88na.onrender.com/api';
  */
 async function apiFetch(endpoint, options = {}) {
     const token = localStorage.getItem('dd_authToken');
-    
     options.headers = options.headers || {};
-    
-    // Auto-set JSON header if body is a string (and not FormData)
     if (options.body && typeof options.body === 'string' && !options.headers['Content-Type']) {
         options.headers['Content-Type'] = 'application/json';
     }
-    
-    // Attach secure token
     if (token) {
         options.headers['Authorization'] = `Bearer ${token}`;
     }
-
     const response = await fetch(`${API_BASE}${endpoint}`, options);
     
-    // Security Gate: Kick out user if token is invalid/expired (unless on auth pages)
+    // ⚡ FIX: Only force a logout if they are actively using the dashboard
     if (response.status === 401) {
         const path = window.location.pathname;
         if (!path.includes('login') && !path.includes('signup') && !path.includes('index')) {
             doLogout('Session expired. Please log in again.');
+            return { success: false, message: 'Session expired' };
         }
-        return { success: false, message: 'Session expired' };
+        // If they are on the login page, let the code continue down so it can read the real error!
     }
     
-    // Parse JSON safely
     try {
         return await response.json();
     } catch (e) {
         if (!response.ok) throw new Error('Server error or invalid response format');
-        return { success: true }; // Fallback for 200 OK without JSON body
+        return { success: true };
     }
 }
-
 // ============================================================
 // GLOBAL STATE & ROUTING
 // ============================================================
@@ -54,6 +47,8 @@ window.currentMonth = new Date().getMonth();
 window.currentYear = new Date().getFullYear();
 window.cachedEvents = [];
 window.mySchedule = {};
+
+
 
 // Dashboard UI global variables
 window.UPCOMING_EVENTS = [];
@@ -308,13 +303,29 @@ function showToast(msg, type='info'){
 }
 
 function goSub(id) {
+  // 1. Switch the active CSS classes to show the correct page
   document.querySelectorAll('.sub-page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.sb-item').forEach(n => n.classList.remove('active'));
+  
   const sp = document.getElementById('sp-'+id);
   if(sp) sp.classList.add('active');
+  
   const sn = document.getElementById('snav-'+id);
   if(sn) sn.classList.add('active');
+  
   currentSub = id;
+
+  // 2. ⚡ THE FIX: Trigger data loading EXACTLY when the tab is activated
+  if (id === 'schedule') {
+      if (typeof window.loadSavedSchedule === 'function') {
+          window.loadSavedSchedule();
+      }
+  }
+  
+  // (You can also add triggers for your other tabs here in the future!)
+  if (id === 'notif' && typeof loadUserNotifications === 'function') {
+      loadUserNotifications();
+  }
 }
 
 function doLogout(reason = 'Logged out successfully.') {
@@ -1545,38 +1556,86 @@ function renderMySchedule() {
     } catch(e) { console.error("Error drawing schedule table:", e); }
 }
 
+
+// ── Bulletproof Schedule Save & Load (app.js) ─────────────────────
+
 async function saveMySchedule() {
     const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
     if(!currentUser) return;
+
+    // 1. Gather the visual grid data into an object format
+    window.mySchedule = {}; 
+    document.querySelectorAll('.isched-cell.busy').forEach(cell => {
+        const day = cell.getAttribute('data-day');
+        const hour = cell.getAttribute('data-hour');
+        window.mySchedule[`${day}-${hour}`] = true;
+    });
+
     try {
+        // Send the schedule to the Node backend
         const data = await apiFetch('/schedule', {
-            method: 'POST', body: JSON.stringify({ userId: currentUser.id, schedule: window.mySchedule })
+            method: 'POST', 
+            body: JSON.stringify({ userId: currentUser.id, schedule: window.mySchedule })
         });
-        if(data && data.success) showToast('Schedule saved successfully!', 'success');
-        else showToast('Failed to save schedule', 'error');
-    } catch(e) { showToast('Server error', 'error'); }
+        
+        if(data && data.success) {
+            showToast('Schedule saved successfully!', 'success');
+            // Force a live visual refresh to confirm the database caught it
+            loadSavedSchedule();
+        } else {
+            showToast('Failed to save schedule', 'error');
+        }
+    } catch(e) { 
+        showToast('Server error', 'error'); 
+    }
 }
 
 async function loadSavedSchedule() {
     const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
     if(!currentUser) return;
+    
     try {
-        const data = await apiFetch(`/schedule/${currentUser.id}`);
-        if(data && data.success && data.schedule) {
-            window.mySchedule = typeof data.schedule === 'string' ? JSON.parse(data.schedule) : data.schedule;
+        // Cache-buster ensures we fetch the newest SQL database records
+        const data = await apiFetch(`/schedule/${currentUser.id}?_nocache=${Date.now()}`);
+        
+        if(data && data.success) {
+            window.mySchedule = {};
             
+            // 2. THE FIX: Handle the data whether the backend returns an Array (SQL rows) or an Object
+            const source = data.schedule || data.schedules || data.data || [];
+            
+            if (Array.isArray(source)) {
+                // If backend returns SQL rows, translate them into our "day-hour" grid keys
+                source.forEach(row => {
+                    const d = row.day_of_week !== undefined ? row.day_of_week : row.day;
+                    const h = row.hour_of_day !== undefined ? row.hour_of_day : row.hour;
+                    if(d !== undefined && h !== undefined) {
+                        window.mySchedule[`${d}-${h}`] = true;
+                    }
+                });
+            } else if (typeof source === 'string') {
+                try { window.mySchedule = JSON.parse(source); } catch(e){}
+            } else if (typeof source === 'object') {
+                window.mySchedule = source;
+            }
+            
+            // 3. Paint the green/red boxes securely onto the grid
             document.querySelectorAll('.isched-cell').forEach(cell => {
                 const day = cell.getAttribute('data-day');
                 const hour = cell.getAttribute('data-hour');
                 const key = `${day}-${hour}`;
+                
                 if(window.mySchedule[key]) {
                     cell.classList.add('busy');
+                } else {
+                    cell.classList.remove('busy');
                 }
             });
         }
-    } catch(e) {}
+    } catch(e) {
+        console.error("Could not load schedule data from server.", e);
+    }
 }
-
 
 let currentCalDate = new Date();
 window.calendarMode = window.calendarMode || 'year'; // Start in Year View
@@ -2353,3 +2412,63 @@ window.updateServiceStatus = async function(eventId) {
         showToast('Server connection error.', 'error');
     }
 };
+
+window.deleteMyAccount = async function() {
+    // 1. Double confirmation to prevent accidents
+    const confirmText = "⚠️ WARNING: Are you absolutely sure?\n\nThis will permanently delete your account and all associated data. This action CANNOT be undone.";
+    if (!confirm(confirmText)) return;
+
+    const finalConfirm = confirm("FINAL CHECK: Do you really want to leave DeployDesk?");
+    if (!finalConfirm) return;
+
+    // 2. Identify the current user
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
+    if (!currentUser) return;
+
+    const btn = document.querySelector('button[onclick="deleteMyAccount()"]');
+    if (btn) {
+        btn.innerText = "⌛ Processing Deletion...";
+        btn.disabled = true;
+    }
+
+    try {
+        // 3. Call backend to remove user from database[cite: 3]
+        const data = await apiFetch('/users/remove', {
+            method: 'POST',
+            body: JSON.stringify({ userId: currentUser.id })
+        });
+
+        if (data && data.success) {
+            alert("Your account has been successfully deleted. We're sorry to see you go!");
+            
+            // 4. Clear local session data and redirect to landing page[cite: 2]
+            localStorage.removeItem('dd_currentUser');
+            localStorage.removeItem('dd_authToken');
+            window.location.href = 'index.html'; 
+        } else {
+            alert("Error: Could not delete account at this time.");
+            if (btn) {
+                btn.innerText = "🗑️ Permanently Delete My Account";
+                btn.disabled = false;
+            }
+        }
+    } catch (e) {
+        console.error("Account Deletion Error:", e);
+        alert("A server error occurred. Please check your connection.");
+        if (btn) {
+            btn.innerText = "🗑️ Permanently Delete My Account";
+            btn.disabled = false;
+        }
+    }
+};
+
+// Function to handle tab switching
+function switchProfileTab(tabId, el) {
+    // Hide all contents and remove active classes from buttons
+    document.querySelectorAll('.profile-tab-content').forEach(tab => tab.style.display = 'none');
+    document.querySelectorAll('.profile-tab-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // Show selected tab and set button as active
+    document.getElementById('tab-' + tabId).style.display = 'block';
+    el.classList.add('active');
+}

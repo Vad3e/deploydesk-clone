@@ -6,6 +6,23 @@
   <title>DeployDesk — Profile</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300..600;1,300..600&display=swap" rel="stylesheet"/>
   <style>
+    /* ... (All your existing CSS styles remain exactly the same) ... */
+    
+    /* ── ADDED DANGER ZONE STYLING ── */
+    .danger-card {
+      border: 1px solid #f5c6cb;
+      background: #fff;
+    }
+    .btn-danger {
+      background: #dc3545;
+      color: #fff;
+    }
+    .btn-danger:hover {
+      background: #c82333;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 14px rgba(220,53,69,.3);
+    }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -239,6 +256,30 @@
       background: #222; color: #fff; padding: 12px 18px;
       border-radius: 10px; font-size: 13px; box-shadow: 0 4px 20px rgba(0,0,0,.2);
     }
+    /* ── PASSWORD TOGGLE STYLES ── */
+    .password-wrapper {
+      position: relative;
+    }
+    .toggle-visibility {
+      position: absolute;
+      top: 50%;
+      right: 14px;
+      transform: translateY(-50%);
+      border: none;
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .toggle-visibility svg {
+      width: 18px;
+      height: 18px;
+    }
   </style>
 </head>
 <body>
@@ -280,6 +321,8 @@
       <button class="tab" onclick="switchTab('edit', this)">Edit Profile</button>
       <button class="tab" onclick="switchTab('password', this)">Change Password</button>
       <button class="tab" onclick="switchTab('picture', this)">Profile Picture</button>
+      <!-- ⚡ NEW TAB BUTTON -->
+      <button class="tab" onclick="switchTab('delete', this)">Delete Account</button>
     </div>
 
     <div class="tab-panel active" id="panel-info">
@@ -351,22 +394,40 @@
     <div class="tab-panel" id="panel-password">
       <div class="content-card">
         <div class="card-title">Change Password</div>
+        
         <div class="form-group" style="max-width:360px;">
           <label class="form-label">Current Password</label>
-          <input class="form-input" type="password" />
+          <div class="password-wrapper">
+            <input class="form-input" type="password" id="profCurrentPass" />
+            <button type="button" class="toggle-visibility" onclick="toggleProfilePassword('profCurrentPass', this)" aria-label="Toggle visibility">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5C7 5 2.73 8.11 1 12.5c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5z"/><circle cx="12" cy="12" r="2.5"/><path d="M3 3l18 18"/></svg>
+            </button>
+          </div>
         </div>
+        
         <div class="form-group" style="max-width:360px;">
           <label class="form-label">New Password</label>
-          <input class="form-input" type="password" placeholder="Min. 8 characters"/>
+          <div class="password-wrapper">
+            <input class="form-input" type="password" id="profNewPass" placeholder="Min. 8 characters"/>
+            <button type="button" class="toggle-visibility" onclick="toggleProfilePassword('profNewPass', this)" aria-label="Toggle visibility">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5C7 5 2.73 8.11 1 12.5c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5z"/><circle cx="12" cy="12" r="2.5"/><path d="M3 3l18 18"/></svg>
+            </button>
+          </div>
         </div>
+        
         <div class="form-group" style="max-width:360px;">
           <label class="form-label">Confirm New Password</label>
-          <input class="form-input" type="password" placeholder="Re-enter new passw..."/>
+          <div class="password-wrapper">
+            <input class="form-input" type="password" id="profConfirmPass" placeholder="Re-enter new password..."/>
+            <button type="button" class="toggle-visibility" onclick="toggleProfilePassword('profConfirmPass', this)" aria-label="Toggle visibility">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5C7 5 2.73 8.11 1 12.5c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5z"/><circle cx="12" cy="12" r="2.5"/><path d="M3 3l18 18"/></svg>
+            </button>
+          </div>
         </div>
-        <button class="btn btn-primary" onclick="showToast('Password updated! (Frontend only)', 'success')">Update Password</button>
+        
+        <button class="btn btn-primary" id="btnChangePass" onclick="changeMyPassword()">Update Password</button>
       </div>
     </div>
-
     <div class="tab-panel" id="panel-picture">
       <div class="content-card">
         <div class="card-title">Profile Picture</div>
@@ -385,6 +446,21 @@
       </div>
     </div>
 
+    <!-- ⚡ NEW TAB PANEL: DELETE ACCOUNT -->
+    <div class="tab-panel" id="panel-delete">
+      <div class="content-card danger-card">
+        <div class="card-title" style="color: #dc3545; border-bottom-color: #f5c6cb;">Account Deletion</div>
+        <p style="font-size: 14px; color: var(--text2); margin-bottom: 24px; line-height: 1.6;">
+            Deleting your account is permanent. All your data, including event histories, 
+            schedules, and personal information, will be erased from our database and cannot be recovered.
+        </p>
+        
+        <button class="btn btn-danger" onclick="deleteMyAccount()">
+             Delete My Account
+        </button>
+      </div>
+    </div>
+
   </div>
   <div class="toast-wrap" id="toastWrap"></div>
 
@@ -396,6 +472,118 @@
       el.classList.add('active');
       document.getElementById('panel-' + name).classList.add('active');
     }
+
+    // ⚡ ADDED: DELETE ACCOUNT LOGIC
+    window.deleteMyAccount = async function() {
+        const confirmText = "⚠️ WARNING: Are you absolutely sure?\n\nThis will permanently delete your account and all associated data. This action CANNOT be undone.";
+        if (!confirm(confirmText)) return;
+
+        const finalConfirm = confirm("FINAL CHECK: Do you really want to leave DeployDesk?");
+        if (!finalConfirm) return;
+
+        const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
+        if (!currentUser) return;
+
+        const btn = document.querySelector('button[onclick="deleteMyAccount()"]');
+        if (btn) {
+            btn.innerText = "⌛ Processing Deletion...";
+            btn.disabled = true;
+        }
+
+        try {
+            // Call backend to remove user from database[cite: 3]
+            const data = await apiFetch('/users/remove', {
+                method: 'POST',
+                body: JSON.stringify({ userId: currentUser.id })
+            });
+
+            if (data && data.success) {
+                alert("Your account has been successfully deleted. We're sorry to see you go!");
+                
+                // Clear local session data and redirect to landing page[cite: 2]
+                localStorage.removeItem('dd_currentUser');
+                localStorage.removeItem('dd_authToken');
+                window.location.href = 'index.html'; 
+            } else {
+                alert("Error: Could not delete account at this time.");
+                if (btn) {
+                    btn.innerText = "🗑️ Permanently Delete My Account";
+                    btn.disabled = false;
+                }
+            }
+        } catch (e) {
+            console.error("Account Deletion Error:", e);
+            alert("A server error occurred. Please check your connection.");
+            if (btn) {
+                btn.innerText = "🗑️ Permanently Delete My Account";
+                btn.disabled = false;
+            }
+        }
+    };
+    window.changeMyPassword = async function() {
+    const currentPass = document.getElementById('profCurrentPass').value;
+    const newPass = document.getElementById('profNewPass').value;
+    const confirmPass = document.getElementById('profConfirmPass').value;
+
+    if (!currentPass || !newPass || !confirmPass) {
+        return alert("Please fill in all password fields.");
+    }
+    if (newPass !== confirmPass) {
+        return alert("Your new passwords do not match.");
+    }
+
+    const currentUser = JSON.parse(localStorage.getItem('dd_currentUser'));
+    if (!currentUser) return;
+
+    const btn = document.getElementById('btnChangePass');
+    const originalText = btn.innerText;
+    btn.innerText = "⏳ Updating...";
+    btn.disabled = true;
+
+    try {
+        const data = await apiFetch('/change-password', {
+            method: 'POST',
+            body: JSON.stringify({
+                userId: currentUser.id,
+                currentPassword: currentPass,
+                newPassword: newPass
+            })
+        });
+
+        if (data && data.success) {
+            alert("Password updated successfully! You will now be logged out. Please log back in with your new password.");
+            
+            // Log them out to enforce the new password
+            localStorage.removeItem('dd_currentUser');
+            localStorage.removeItem('dd_authToken');
+            window.location.href = 'index.html';
+        } else {
+            alert(data.message || "Failed to update password.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Server error connecting to the database.");
+    } finally {
+        btn.innerText = originalText;
+        btn.disabled = false;
+        
+        // Clear fields in case it failed
+        document.getElementById('profCurrentPass').value = '';
+        document.getElementById('profNewPass').value = '';
+        document.getElementById('profConfirmPass').value = '';
+    }
+};
+// ⚡ ADDED: Show/Hide Password Logic
+    var eyeOpen = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5C7 5 2.73 8.11 1 12.5c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5z"/><circle cx="12" cy="12" r="2.5"/></svg>';
+    var eyeClosed = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5C7 5 2.73 8.11 1 12.5c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 8.11 17 5 12 5z"/><circle cx="12" cy="12" r="2.5"/><path d="M3 3l18 18"/></svg>';
+
+    window.toggleProfilePassword = function(inputId, button) {
+      var input = document.getElementById(inputId);
+      if (!input) return;
+      var isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      button.innerHTML = isHidden ? eyeOpen : eyeClosed;
+    };
   </script>
 </body>
 </html>
